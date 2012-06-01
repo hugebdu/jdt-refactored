@@ -1,12 +1,19 @@
 package il.ac.idc.jdt.extra.los;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import il.ac.idc.jdt.DelaunayTriangulation;
+import il.ac.idc.jdt.IOParsers;
 import il.ac.idc.jdt.Point;
+import il.ac.idc.jdt.extra.los.Section;
+import il.ac.idc.jdt.extra.los.Visibility;
+import org.junit.Test;
 
-import org.testng.annotations.Test;
+import il.ac.idc.jdt.extra.constraint.helper.Converter;
 
-@Test
+import java.io.IOException;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+
 public class VisibilityTest {
 
 	public void shouldSeeTwoPointsSameLine() {
@@ -47,4 +54,18 @@ public class VisibilityTest {
 		assertThat("Doens't have simple visibility", !v.isVisible(section));
 
 	}
+
+
+    @Test
+    public void someTest() throws IOException {
+        List<Point> points = IOParsers.readPoints("C:\\Users\\Innak\\workspace\\GitRepo\\ex4\\jdt-refactored\\core\\src\\test\\resources\\inputs\\t1_1000.tsin");
+        DelaunayTriangulation delaunayTriangulation = new DelaunayTriangulation(points);
+        Point p1 = new Point(4013100.0D, 606720.0D, 7D);
+        Point p2 = new Point(4013640.0D, 610320.0, 8D);
+
+        Visibility v = new Visibility();
+        Section section = v.computeSection(delaunayTriangulation, p1, p2);
+        System.out.println("f");
+    }
+
 }

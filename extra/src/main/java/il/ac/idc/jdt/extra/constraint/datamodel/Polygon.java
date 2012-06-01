@@ -1,6 +1,12 @@
-package il.ac.idc.jdt;
+package il.ac.idc.jdt.extra.constraint.datamodel;
+
+import com.google.common.collect.Lists;
+import il.ac.idc.jdt.Point;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA.
@@ -14,7 +20,7 @@ public class Polygon {
     /**
      * Points representing the polygon ordered clockwise
      */
-    private ArrayList<Point> points;
+    private ArrayList<Point> points = Lists.newArrayList() ;
 
     /**
      * The polygons match the points. They are adjacent to the points counterclockwise
@@ -29,8 +35,16 @@ public class Polygon {
      *  If the polygon is not convex then same polygon may be adjacent twice
      *  If there is no polygon since the line is a part of the convex hull then the list will hold null.
      */
-    private ArrayList<Polygon> adjacentPolygons;
+    private ArrayList<Polygon> adjacentPolygons = Lists.newArrayList();
+    /**
+     *  This is an indicator helper to weather this polygon should be merged with a polygon neighbour
+     */
+    private boolean markForMerge;
 
+    /**
+     * This makes it easier to extract a polygon object based on it's point
+     */
+    Map<Set<Point>, Polygon> polygonsMap;
 
     /**
      * holds amount of points
@@ -48,6 +62,13 @@ public class Polygon {
         size++;
     }
 
+    /**
+     * This is to convert from Triangle to point constructor, points should be counterclockwise direction
+     *
+     * @param p1
+     * @param p2
+     * @param p3
+     */
     public void addPoints(Point p1, Point p2, Point p3) {
         points.add(p1);
         points.add(p2);
@@ -75,5 +96,30 @@ public class Polygon {
     @Override
     public int hashCode() {
         return points != null ? points.hashCode() : 0;
+    }
+
+    public boolean isTriangle() {
+        return (size == 3);
+    }
+
+
+    public boolean isMarkForMerge() {
+        return markForMerge;
+    }
+
+    public void setMarkForMerge(boolean markForMerge) {
+        this.markForMerge = markForMerge;
+    }
+
+    public ArrayList<Polygon> getAdjacentPolygons() {
+        return adjacentPolygons;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public ArrayList<Point> getPoints() {
+        return points;
     }
 }

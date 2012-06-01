@@ -20,7 +20,7 @@ public class Visibility {
 	 * @param p2
 	 * @return Section object.
 	 */
-	public Section computeSection(DelaunayTriangulation dt, Point p1, Point p2) {
+	public static Section computeSection(DelaunayTriangulation dt, Point p1, Point p2) {
 		Triangle t1 = dt.find(p1);
 		Triangle t2 = dt.find(p2);
 		p1 = t1.getZ(p1);
