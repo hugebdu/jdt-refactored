@@ -47,9 +47,9 @@ public class Converter {
             polygons.add(polygon);
             mapOfPolygons.put(keyOfCurrentTriangle, polygon);
 
-            polygon.addPolygon(populatePolygons(triangle.getAbTriangle(), polygons, mapOfPolygons));
-            polygon.addPolygon(populatePolygons(triangle.getBcTriangle(), polygons, mapOfPolygons));
-            polygon.addPolygon(populatePolygons(triangle.getCaTriangle(), polygons, mapOfPolygons));
+            polygon.addPolygon(populatePolygons(triangle.getAbTriangle(), polygons, mapOfPolygons), 0);
+            polygon.addPolygon(populatePolygons(triangle.getBcTriangle(), polygons, mapOfPolygons), 1);
+            polygon.addPolygon(populatePolygons(triangle.getCaTriangle(), polygons, mapOfPolygons), 2);
             return polygon;
 
         } else {
@@ -63,7 +63,6 @@ public class Converter {
         return !mapOfPolygons.containsKey(keyOfCurrentTriangle);
     }
 
-    //TODO: move to map
     private static Polygon getPolygon(List<Polygon> polygons, Polygon keyPolygon) {
         for (Polygon polygon : polygons) {
             if (polygon.equals(keyPolygon)) {

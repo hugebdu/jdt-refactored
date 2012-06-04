@@ -14,6 +14,7 @@ import il.ac.idc.jdt.extra.los.Section;
 import il.ac.idc.jdt.extra.los.Visibility;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Created by IntelliJ IDEA.
@@ -23,8 +24,9 @@ import java.util.*;
 
 public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 {
-    private Collection<Polygon> polygons = Lists.newArrayList();
+    private Collection<Polygon> polygons = new CopyOnWriteArrayList<Polygon>();
     private Map<Set<Point>, Polygon> mapOfPolygons = Maps.newHashMap();
+
 
     public ConstrainedDelaunayTriangulation(Point[] ps, Segment[] constraints)
     {
@@ -56,8 +58,31 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
     }
 
     private void mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
-        int indexOfPolygonToMergeInRootPolygon = getIndexOfPolygonToMergeInRootPolygon(polygonToMerge, rootToMergeInto);
-        Point connectionPoint1 = rootToMergeInto.getPoints().get(indexOfPolygonToMergeInRootPolygon);
+        Point intersectionPoint = getIntersectionPoint(polygonToMerge, rootToMergeInto);
+
+
+        Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
+
+        //remove the two points to avoid adding them twice
+        rootToMergeInto.getPoints().remove(indexOfPoint);
+        rootToMergeInto.getAdjacentPolygons().remove(indexOfPoint);
+        rootToMergeInto.getPoints().remove(indexOfPoint + 1);
+        rootToMergeInto.getAdjacentPolygons().remove(indexOfPoint + 1);
+
+        List<Polygon> adjacentPolygonsOfPolygonToMerge = polygonToMerge.getAdjacentPolygons();
+        for (Polygon polygon : adjacentPolygonsOfPolygonToMerge) {
+            Integer indexByPolygon = polygon.getIndexByPolygon(polygonToMerge);
+            Polygon meToUpdate = polygon.getAdjacentPolygons().get(indexByPolygon);
+   ///!!!! need to hold maps and indexes - crappy structure for now!!!  - just to decise how will be the key
+        }
+
+        polygonToMerge.rotateOrderByLeadingPoint(intersectionPoint);
+        //merge the two polygons
+        rootToMergeInto.getPoints().addAll(indexOfPoint, polygonToMerge.getPoints());
+        rootToMergeInto.getAdjacentPolygons().addAll(indexOfPoint, polygonToMerge.getAdjacentPolygons());
+
+
+
 
         //TODO: complete merge
     }
@@ -65,12 +90,11 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 
 
 
-    private int getIndexOfPolygonToMergeInRootPolygon(Polygon polygonToMerge, Polygon rootToMergeInto) {
-        ArrayList<Polygon> surroundingPolygons = rootToMergeInto.getAdjacentPolygons();
-        ArrayList<Point> points = rootToMergeInto.getPoints();
+    private Point getIntersectionPoint(Polygon polygonToMerge, Polygon rootToMergeInto) {
+        List<Polygon> surroundingPolygons = rootToMergeInto.getAdjacentPolygons();
         for(int i=0; i<rootToMergeInto.getSize(); i++) {
             if (surroundingPolygons.get(i).equals(polygonToMerge)) {
-                return i;
+                rootToMergeInto.getPoints().get(i);
             }
 
         }
