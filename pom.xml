@@ -20,7 +20,8 @@
 		<module>gui</module>
 		<module>gui3d</module>
 		<module>extra</module>
-	</modules>
+        <module>gui2</module>
+    </modules>
 
 	<properties>
 		<maven.compiler.source>1.6</maven.compiler.source>
@@ -31,6 +32,7 @@
         <junit.version>4.8.2</junit.version>
         <guava.version>12.0</guava.version>
 	</properties>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -48,6 +50,11 @@
 				<artifactId>jdt-extra</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+            <dependency>
+                <groupId>il.ac.idc.jdt</groupId>
+                <artifactId>jdt-gui-2</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
 			<dependency>
 				<groupId>java3d</groupId>

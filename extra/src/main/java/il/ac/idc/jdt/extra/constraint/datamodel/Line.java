@@ -73,4 +73,14 @@ public class Line {
     {
         return Objects.hashCode(ordered());
     }
+
+
+    @Override
+    public String toString()
+    {
+        return "Line{" +
+                "p1=" + p1 +
+                ", p2=" + p2 +
+                '}';
+    }
 }
