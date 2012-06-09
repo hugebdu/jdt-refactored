@@ -1,18 +1,16 @@
 package il.ac.idc.jdt.extra.helper;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import il.ac.idc.jdt.*;
 import il.ac.idc.jdt.Point;
+import il.ac.idc.jdt.extra.DataGeneratorHelper;
 import il.ac.idc.jdt.extra.constraint.datamodel.*;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.extra.constraint.helper.Converter;
 import org.junit.Test;
-
-import java.awt.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -24,16 +22,44 @@ import static junit.framework.Assert.assertEquals;
  * To change this template use File | Settings | File Templates.
  */
 public class ConverterTest {
+    private static Point p11;
+    private static Point p22;
+    private static Point p24;
+    private static Point p34;
+    private static Point p55;
+    private static Point p41;
+    private static Point p73;
 
     @Test
     public void testConvert() {
-        Point p11 = new Point(1D, 1D, 1D);
-        Point p22 = new Point(2D, 2D, 2D);
-        Point p24 = new Point(2D, 4D, 3D);
-        Point p34 = new Point(3D, 4D, 3D);
-        Point p55 = new Point(5D, 5D, 4D);
-        Point p41 = new Point(4D, 1D, 5D);
-        Point p73 = new Point(7D, 3D, 6D);
+        ArrayList<Triangle> triangles = generateTriangelsForTriangulation();
+
+        Map<Set<Point>,Polygon> setPolygonMap = Converter.fromTrianglesToPolygons(triangles);
+        assertEquals(6, setPolygonMap.size());
+
+        Set<Point> key = Sets.newHashSet(p22, p34, p24);
+        Polygon polygonToMerge = setPolygonMap.get(key);
+        Set<Point> key2 = Sets.newHashSet(p22, p55, p34);
+        Polygon polygonRoot = setPolygonMap.get(key2);
+
+        Converter.mergeTwoPolygons(polygonToMerge, polygonRoot);
+
+    }
+
+
+    public void testAddLine() {
+
+    }
+
+
+    public static ArrayList<Triangle> generateTriangelsForTriangulation() {
+        p11 = new Point(1D, 1D, 1D);
+        p22 = new Point(2D, 2D, 2D);
+        p24 = new Point(2D, 4D, 3D);
+        p34 = new Point(3D, 4D, 3D);
+        p55 = new Point(5D, 5D, 4D);
+        p41 = new Point(4D, 1D, 5D);
+        p73 = new Point(7D, 3D, 6D);
 
         Triangle t1 = new Triangle(p11, p22, p24);
         Triangle t2 = new Triangle(p22, p34, p24);
@@ -66,12 +92,8 @@ public class ConverterTest {
         t6.setBcTriangle(null);
         t6.setCanext(t4);
 
-        ArrayList<Triangle> triangles = Lists.newArrayList(t1, t2, t3, t4, t5, t6);
-
-        Map<Set<Point>,Polygon> setPolygonMap = Converter.fromTrianglesToPolygons(triangles);
-        assertEquals(6, setPolygonMap.size());
+        return Lists.newArrayList(t1, t2, t3, t4, t5, t6);
     }
-
 }
 
 

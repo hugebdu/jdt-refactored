@@ -2,6 +2,7 @@ package il.ac.idc.jdt.extra.constraint.datamodel;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import il.ac.idc.jdt.Point;
 
 import java.security.PrivateKey;
@@ -59,22 +60,6 @@ public class Polygon {
     private Map<Polygon, Integer> polygonToIndexInList = Maps.newHashMap();
 
     /**
-     * holds amount of points
-     */
-    private int size;
-
-    /**
-     *
-     * @param point
-     * @param polygon
-     */
-    public void addPointAndPolygon(Point point, Polygon polygon) {
-        points.add(point);
-        adjacentPolygons.add(polygon);
-        size++;
-    }
-
-    /**
      * This is to convert from Triangle to point constructor, points should be counterclockwise direction
      *
      * @param p1
@@ -85,8 +70,6 @@ public class Polygon {
         points.add(p1);
         points.add(p2);
         points.add(p3);
-
-        size += 3;
 
         pointToIndexInList.put(p1, 0);
         pointToIndexInList.put(p2, 1);
@@ -116,7 +99,7 @@ public class Polygon {
     }
 
     public boolean isTriangle() {
-        return (size == 3);
+        return (getSize() == 3);
     }
 
     /**
@@ -151,6 +134,14 @@ public class Polygon {
         pointsLedByP.addAll(firstHalfPoints);
         polygonsLedByP.addAll(firstHalfPolygons);
 
+        for (int i=0; i<pointsLedByP.size(); i++) {
+            pointToIndexInList.put(pointsLedByP.get(i), i);
+        }
+
+        for (int i=0; i<polygonsLedByP.size(); i++) {
+            polygonToIndexInList.put(polygonsLedByP.get(i), i);
+        }
+
         points = pointsLedByP;
         adjacentPolygons = polygonsLedByP;
     }
@@ -168,11 +159,28 @@ public class Polygon {
     }
 
     public int getSize() {
-        return size;
+        return points.size();
     }
 
     public List<Point> getPoints() {
         return points;
+    }
+
+    public void removeByIndex(int i) {
+        Point removedPoint = points.remove(i);
+        pointToIndexInList.remove(removedPoint);
+
+        Polygon removedPolygon = adjacentPolygons.remove(i);
+        polygonToIndexInList.remove(removedPolygon);
+    }
+
+    public void removeByPoint(Point p) {
+        points.remove(p);
+        pointToIndexInList.remove(p);
+
+        int index = points.indexOf(p);
+        Polygon removedPolygon = adjacentPolygons.remove(index);
+        polygonToIndexInList.remove(removedPolygon);
     }
 
     /**
@@ -186,5 +194,15 @@ public class Polygon {
 
     public Integer getIndexByPolygon(Polygon polygon) {
         return polygonToIndexInList.get(polygon);
+    }
+
+    public void setPolygon(int index, Polygon polygon) {
+        Polygon set = adjacentPolygons.set(index, polygon);
+        polygonToIndexInList.remove(set);
+        polygonToIndexInList.put(polygon, index);
+    }
+
+    public Set<Point> getKey() {
+        return Sets.newHashSet(points);
     }
 }

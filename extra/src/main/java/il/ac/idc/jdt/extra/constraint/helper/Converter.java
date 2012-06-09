@@ -34,6 +34,51 @@ public class Converter {
         return mapOfPolygons;
     }
 
+
+    public static void mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
+
+        Point intersectionPoint = getIntersectionPoint(polygonToMerge, rootToMergeInto);
+
+        Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
+
+        //remove the two intersection point to avoid adding it twice
+        rootToMergeInto.removeByIndex(indexOfPoint);
+
+        polygonToMerge.rotateOrderByLeadingPoint(intersectionPoint);
+
+        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto);
+        //remove the last point since it is common with the root polygon - so not to add it twice
+        polygonToMerge.removeByIndex(polygonToMerge.getSize() - 1);
+        //merge the two polygons
+        rootToMergeInto.getPoints().addAll(indexOfPoint, polygonToMerge.getPoints());
+        rootToMergeInto.getAdjacentPolygons().addAll(indexOfPoint, polygonToMerge.getAdjacentPolygons());
+
+    }
+
+    private static Point getIntersectionPoint(Polygon polygonToMerge, Polygon rootToMergeInto) {
+        List<Polygon> surroundingPolygons = rootToMergeInto.getAdjacentPolygons();
+        for(int i=0; i<rootToMergeInto.getSize(); i++) {
+            Polygon polygon = surroundingPolygons.get(i);
+            if (polygon != null) {
+                if (polygon.equals(polygonToMerge)) {
+                    return rootToMergeInto.getPoints().get(i);
+                }
+            }
+        }
+
+        throw new RuntimeException("illegal input");
+    }
+
+    private static void updateNeighboursWithMergedPolygon(Polygon polygonToMerge, Polygon rootToMergeInto) {
+        List<Polygon> adjacentPolygons = polygonToMerge.getAdjacentPolygons();
+        for (Polygon adjacentPolygon : adjacentPolygons) {
+            if (adjacentPolygon != null) {
+                Integer indexOfMergedPolygonInNeighbours = adjacentPolygon.getIndexByPolygon(polygonToMerge);
+                adjacentPolygon.setPolygon(indexOfMergedPolygonInNeighbours, rootToMergeInto);
+            }
+        }
+    }
+
     public static Polygon populatePolygons(Triangle triangle, List<Polygon> polygons, Map<Set<Point>, Polygon> mapOfPolygons) {
         if (triangle == null) {
             return null;
