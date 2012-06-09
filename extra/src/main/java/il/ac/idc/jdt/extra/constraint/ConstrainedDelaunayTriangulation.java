@@ -126,6 +126,9 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         Converter.mergeTwoPolygons(polygonToMerge, rootToMergeInto);
     }
 
+    public ConstrainedDelaunayTriangulation(Point[] ps) {
+        super(ps);
+    }
     public ConstrainedDelaunayTriangulation(Collection<Point> points) {
         super(points);
         List<Triangle> triangulation = getTriangulation();
