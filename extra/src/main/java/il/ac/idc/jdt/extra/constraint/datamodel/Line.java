@@ -1,5 +1,12 @@
 package il.ac.idc.jdt.extra.constraint.datamodel;
-import  il.ac.idc.jdt.*;
+
+import com.google.common.base.Objects;
+import il.ac.idc.jdt.Point;
+
+import java.util.Arrays;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Created with IntelliJ IDEA.
@@ -10,27 +17,60 @@ import  il.ac.idc.jdt.*;
  */
 public class Line {
 
-    private Point p1;
-    private Point p2;
+    private final Point p1;
+    private final Point p2;
+
+    public Line(Point p1, Point p2) {
+        checkNotNull(p1, "p1 cannot be null");
+        checkNotNull(p2, "p2 cannot be null");
+        checkArgument(!p1.equals(p2), "both points cannot be the same");
+
+        this.p1 = p1;
+        this.p2 = p2;
+    }
 
     public Point getP1() {
         return p1;
-    }
-
-    public void setP1(Point p1) {
-        this.p1 = p1;
     }
 
     public Point getP2() {
         return p2;
     }
 
-    public void setP2(Point p2) {
-        this.p2 = p2;
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Line line = (Line) o;
+
+        return Arrays.equals(ordered(), line.ordered());
     }
 
-    public Line(Point p1, Point p2) {
-        this.p1 = p1;
-        this.p2 = p2;
+    Point[] ordered()
+    {
+        Point[] ordered = new Point[2];
+
+        if (p1.getX() < p2.getX())
+        {
+            ordered[0] = p1; ordered[1] = p2;
+        }
+        else if (p1.getX() == p2.getX())
+        {
+            ordered[0] = p1.getY() < p2.getY() ? p1 : p2;
+        }
+        else
+        {
+            ordered[0] = p2; ordered[1] = p1;
+        }
+
+        return ordered;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hashCode(ordered());
     }
 }
