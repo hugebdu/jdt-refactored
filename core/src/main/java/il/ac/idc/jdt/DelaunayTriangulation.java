@@ -1461,4 +1461,14 @@ public class DelaunayTriangulation {
 		List<Triangle> triangulation = new ArrayList<Triangle>(triangles);
 		return triangulation;
 	}
+
+    public Triangle getByPoints(List<Point> points) {
+        for (Triangle triangle : getTriangulation()) {
+            if (points.contains(triangle.getA()) && (points.contains(triangle.getB())) &&  (points.contains(triangle.getC()))) {
+                return triangle;
+            }
+        }
+
+        throw new RuntimeException("Illegal points - can't find matching triangle");
+    }
 }

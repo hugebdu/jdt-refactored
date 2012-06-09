@@ -38,21 +38,20 @@ public class Converter {
     public static void mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
 
         Point intersectionPoint = getIntersectionPoint(polygonToMerge, rootToMergeInto);
+        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto);
 
         Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
 
-        //remove the two intersection point to avoid adding it twice
+        //remove the intersection point to avoid adding it twice
         rootToMergeInto.removeByIndex(indexOfPoint);
 
         polygonToMerge.rotateOrderByLeadingPoint(intersectionPoint);
 
-        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto);
         //remove the last point since it is common with the root polygon - so not to add it twice
         polygonToMerge.removeByIndex(polygonToMerge.getSize() - 1);
         //merge the two polygons
         rootToMergeInto.getPoints().addAll(indexOfPoint, polygonToMerge.getPoints());
         rootToMergeInto.getAdjacentPolygons().addAll(indexOfPoint, polygonToMerge.getAdjacentPolygons());
-
     }
 
     private static Point getIntersectionPoint(Polygon polygonToMerge, Polygon rootToMergeInto) {
@@ -72,6 +71,10 @@ public class Converter {
     private static void updateNeighboursWithMergedPolygon(Polygon polygonToMerge, Polygon rootToMergeInto) {
         List<Polygon> adjacentPolygons = polygonToMerge.getAdjacentPolygons();
         for (Polygon adjacentPolygon : adjacentPolygons) {
+//            List<Polygon> toFindMergedPolygonIn = adjacentPolygon.getAdjacentPolygons();
+//            for (Polygon polygon : toFindMergedPolygonIn) {
+//
+//            }
             if (adjacentPolygon != null) {
                 Integer indexOfMergedPolygonInNeighbours = adjacentPolygon.getIndexByPolygon(polygonToMerge);
                 adjacentPolygon.setPolygon(indexOfMergedPolygonInNeighbours, rootToMergeInto);
@@ -80,40 +83,34 @@ public class Converter {
     }
 
     public static Polygon populatePolygons(Triangle triangle, List<Polygon> polygons, Map<Set<Point>, Polygon> mapOfPolygons) {
-        if (triangle == null) {
-            return null;
+        if (!triangle.isHalfplane()) {
+            if (triangle == null) {
+                return null;
+            }
+
+            HashSet<Point> keyOfCurrentTriangle = Sets.newHashSet(triangle.getA(), triangle.getB(), triangle.getC());
+
+            if (isNewPolygon(mapOfPolygons, keyOfCurrentTriangle)) {
+                Polygon polygon = new Polygon();
+                polygon.addPoints(triangle.getA(), triangle.getB(), triangle.getC());
+                polygons.add(polygon);
+                mapOfPolygons.put(keyOfCurrentTriangle, polygon);
+
+                polygon.addPolygon(populatePolygons(triangle.getAbTriangle(), polygons, mapOfPolygons), 0);
+                polygon.addPolygon(populatePolygons(triangle.getBcTriangle(), polygons, mapOfPolygons), 1);
+                polygon.addPolygon(populatePolygons(triangle.getCaTriangle(), polygons, mapOfPolygons), 2);
+                return polygon;
+
+            } else {
+                Polygon fullPolygon = mapOfPolygons.get(keyOfCurrentTriangle);
+                return fullPolygon;
+            }
         }
 
-        HashSet<Point> keyOfCurrentTriangle = Sets.newHashSet(triangle.getA(), triangle.getB(), triangle.getC());
-
-        if (isNewPolygon(mapOfPolygons, keyOfCurrentTriangle)) {
-            Polygon polygon = new Polygon();
-            polygon.addPoints(triangle.getA(), triangle.getB(), triangle.getC());
-            polygons.add(polygon);
-            mapOfPolygons.put(keyOfCurrentTriangle, polygon);
-
-            polygon.addPolygon(populatePolygons(triangle.getAbTriangle(), polygons, mapOfPolygons), 0);
-            polygon.addPolygon(populatePolygons(triangle.getBcTriangle(), polygons, mapOfPolygons), 1);
-            polygon.addPolygon(populatePolygons(triangle.getCaTriangle(), polygons, mapOfPolygons), 2);
-            return polygon;
-
-        } else {
-            Polygon fullPolygon = mapOfPolygons.get(keyOfCurrentTriangle);
-            return fullPolygon;
-        }
-
+        return null;
     }
 
     private static boolean isNewPolygon(Map<Set<Point>, Polygon> mapOfPolygons, HashSet<Point> keyOfCurrentTriangle) {
         return !mapOfPolygons.containsKey(keyOfCurrentTriangle);
-    }
-
-    private static Polygon getPolygon(List<Polygon> polygons, Polygon keyPolygon) {
-        for (Polygon polygon : polygons) {
-            if (polygon.equals(keyPolygon)) {
-                return polygon;
-            }
-        }
-        return null;
     }
 }

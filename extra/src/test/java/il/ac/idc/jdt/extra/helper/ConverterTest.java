@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import il.ac.idc.jdt.*;
 import il.ac.idc.jdt.Point;
 import il.ac.idc.jdt.extra.DataGeneratorHelper;
+import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
 import il.ac.idc.jdt.extra.constraint.datamodel.*;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.extra.constraint.helper.Converter;
@@ -30,6 +31,9 @@ public class ConverterTest {
     private static Point p41;
     private static Point p73;
 
+    private static Point pp23;
+    private static Point pp54;
+
     @Test
     public void testConvert() {
         ArrayList<Triangle> triangles = generateTriangelsForTriangulation();
@@ -44,13 +48,20 @@ public class ConverterTest {
 
         Converter.mergeTwoPolygons(polygonToMerge, polygonRoot);
 
+        System.out.println(polygonRoot);
     }
 
-
+    @Test
     public void testAddLine() {
+        ConstrainedDelaunayTriangulation delaunayTriangulation = generateLeagelTriangulation();
 
+        Point pp23 = new Point(2D, 3D, 2D);
+        Point pp54 = new Point(5D, 4D, 3D);
+
+        delaunayTriangulation.addConstraint(new Line(pp23, pp54));
+        Collection<Polygon> polygons = delaunayTriangulation.getPolygons();
+        System.out.println(polygons);
     }
-
 
     public static ArrayList<Triangle> generateTriangelsForTriangulation() {
         p11 = new Point(1D, 1D, 1D);
@@ -93,6 +104,29 @@ public class ConverterTest {
         t6.setCanext(t4);
 
         return Lists.newArrayList(t1, t2, t3, t4, t5, t6);
+    }
+
+    public static ConstrainedDelaunayTriangulation generateLeagelTriangulation() {
+        Point pp12 = new Point(1D, 2D, 1D);
+        pp23 = new Point(2D, 3D, 2D);
+        Point pp44 = new Point(4D, 4D, 3D);
+        pp54 = new Point(5D, 4D, 3D);
+        Point pp63 = new Point(6D, 3D, 4D);
+        Point pp51 = new Point(5D, 1D, 5D);
+        Point pp31 = new Point(3D, 1D, 6D);
+        Point pp43 = new Point(4D, 3D, 6D);
+
+        ConstrainedDelaunayTriangulation t = new ConstrainedDelaunayTriangulation(Lists.newArrayList(pp12, pp23, pp44, pp54, pp63, pp51, pp31, pp43));
+
+//        Triangle t1 = new Triangle(p23, p12, p31);
+//        Triangle t2 = new Triangle(p23, p31, p43);
+//        Triangle t3 = new Triangle(p23, p43, p44);
+//        Triangle t4 = new Triangle(p44, p54, p43);
+//        Triangle t5 = new Triangle(p54, p63, p43);
+//        Triangle t6 = new Triangle(p43, p63, p51);
+//        Triangle t7 = new Triangle(p43, p51, p31);
+//
+        return t;
     }
 }
 

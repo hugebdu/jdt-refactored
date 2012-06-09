@@ -33,4 +33,16 @@ public class Line {
         this.p1 = p1;
         this.p2 = p2;
     }
+
+    public boolean isConnectedToLine(Point p11, Point p22) {
+        if (p1.equals(p11) || p1.equals(p22)) {
+            return true;
+        }
+
+        if (p2.equals(p11) || p2.equals(p22)) {
+            return true;
+        }
+
+       return false;
+    }
 }

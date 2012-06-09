@@ -42,6 +42,24 @@ public class Visibility {
 		return new Section(p1, p2, triangles, points);
 	}
 
+    public static Section computeSection(DelaunayTriangulation dt, Point p1, Triangle t1, Point p2, Triangle t2) {
+        List<Triangle> triangles = new ArrayList<Triangle>();
+        List<Point> points = new ArrayList<Point>();
+
+        Triangle currTriangle = t1;
+        while (currTriangle != t2 && currTriangle != null) {
+            triangles.add(currTriangle);
+            List<Point> newPoints = cut(p1, p2, currTriangle);
+            for (Point p : newPoints) {
+                if (!points.contains(p))
+                    points.add(p);
+            }
+            currTriangle = nextTriangle(p1, p2, currTriangle, triangles);
+        }
+        triangles.add(t2);
+        return new Section(p1, p2, triangles, points);
+    }
+
 	/**
 	 * Returns true iff a line of sight exists for a calculated section in the
 	 * triangulation. Identical to {@code isVisible(section,0,0);}
