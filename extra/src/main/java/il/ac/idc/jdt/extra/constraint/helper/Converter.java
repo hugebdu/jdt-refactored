@@ -35,23 +35,26 @@ public class Converter {
     }
 
 
-    public static void mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
-
+    public static Polygon mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
         Point intersectionPoint = getIntersectionPoint(polygonToMerge, rootToMergeInto);
-        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto);
-
         Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
 
+        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPointWithoutLastPoint(intersectionPoint);
+
+        List<Polygon> polygons = Lists.newArrayList(rootToMergeInto.getAdjacentPolygons());
+        List<Point> points = Lists.newArrayList(rootToMergeInto.getPoints());
+        Polygon mergedPolygon = new Polygon(points, polygons);
+
         //remove the intersection point to avoid adding it twice
-        rootToMergeInto.removeByIndex(indexOfPoint);
-
-        polygonToMerge.rotateOrderByLeadingPoint(intersectionPoint);
-
-        //remove the last point since it is common with the root polygon - so not to add it twice
-        polygonToMerge.removeByIndex(polygonToMerge.getSize() - 1);
+        mergedPolygon.removeByIndex(indexOfPoint);
         //merge the two polygons
-        rootToMergeInto.getPoints().addAll(indexOfPoint, polygonToMerge.getPoints());
-        rootToMergeInto.getAdjacentPolygons().addAll(indexOfPoint, polygonToMerge.getAdjacentPolygons());
+
+        mergedPolygon.getPoints().addAll(indexOfPoint, rotated.getPoints());
+        mergedPolygon.getAdjacentPolygons().addAll(indexOfPoint, rotated.getPolygons());
+
+        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
+
+        return mergedPolygon;
     }
 
     private static Point getIntersectionPoint(Polygon polygonToMerge, Polygon rootToMergeInto) {
@@ -68,16 +71,21 @@ public class Converter {
         throw new RuntimeException("illegal input");
     }
 
-    private static void updateNeighboursWithMergedPolygon(Polygon polygonToMerge, Polygon rootToMergeInto) {
+    private static void updateNeighboursWithMergedPolygon(Polygon polygonToMerge, Polygon rootToMergeInto, Polygon merged) {
         List<Polygon> adjacentPolygons = polygonToMerge.getAdjacentPolygons();
+        updateAdjacent(polygonToMerge, merged, adjacentPolygons);
+
+        adjacentPolygons = rootToMergeInto.getAdjacentPolygons();
+        updateAdjacent(rootToMergeInto, merged, adjacentPolygons);
+    }
+
+    private static void updateAdjacent(Polygon polygonToMerge, Polygon merged, List<Polygon> adjacentPolygons) {
         for (Polygon adjacentPolygon : adjacentPolygons) {
-//            List<Polygon> toFindMergedPolygonIn = adjacentPolygon.getAdjacentPolygons();
-//            for (Polygon polygon : toFindMergedPolygonIn) {
-//
-//            }
             if (adjacentPolygon != null) {
                 Integer indexOfMergedPolygonInNeighbours = adjacentPolygon.getIndexByPolygon(polygonToMerge);
-                adjacentPolygon.setPolygon(indexOfMergedPolygonInNeighbours, rootToMergeInto);
+                if (indexOfMergedPolygonInNeighbours != null) {
+                    adjacentPolygon.setPolygon(indexOfMergedPolygonInNeighbours, merged);
+                }
             }
         }
     }

@@ -2,7 +2,6 @@ package il.ac.idc.jdt.extra.constraint;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import il.ac.idc.jdt.DelaunayTriangulation;
 import il.ac.idc.jdt.Point;
 import il.ac.idc.jdt.Segment;
@@ -10,11 +9,12 @@ import il.ac.idc.jdt.Triangle;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.extra.constraint.helper.Converter;
-import il.ac.idc.jdt.extra.los.Section;
-import il.ac.idc.jdt.extra.los.Visibility;
 
 import java.awt.geom.Line2D;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -58,44 +58,45 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 
     public void addConstraint(Line line) {
 
-//        List<Polygon> effectedPolygonsP1 = findEffectedPolygons(line.getP1());
-//        Polygon polygonInTheRightDirection1 = getIntersectingPolygons(line, effectedPolygonsP1);
-//        Triangle triangle11 = getByPoints(polygonInTheRightDirection1.getPoints());
-//
-//        List<Polygon> effectedPolygonsP2 = findEffectedPolygons(line.getP2());
-//        Polygon polygonInTheRightDirection2 = getIntersectingPolygons(line, effectedPolygonsP2);
-//        Triangle triangle12 = getByPoints(polygonInTheRightDirection2.getPoints());
-//
-//        Section section = Visibility.computeSection(this, line.getP1(), triangle11, line.getP2(), triangle12);
-//        List<Triangle> triangles = section.getTriangles();
-//
-//        for (Triangle triangle : triangles) {
-//            Polygon polygon = mapOfPolygons.get(Sets.newHashSet(triangle.getA(), triangle.getB(), triangle.getC()));
-//            polygon.setMarkForMerge(true);
-//            for (Polygon adjacentPolygon:polygon.getAdjacentPolygons()) {
-//                if(adjacentPolygon.isMarkForMerge()) {
-//                    mergeTwoPolygons(adjacentPolygon, polygon);
-//                }
-//            }
-//        }
+        List<Polygon> effectedPolygons = findEffectedPolygons(line.getP1());
+        Polygon firstPolygon = getIntersectingPolygons(line, effectedPolygons).iterator().next();
+
+        List<Polygon> polygonsInSight = new CopyOnWriteArrayList<Polygon>();
+        fillPolygonsInTheRightDirection(line, firstPolygon, polygonsInSight);
+
+        Polygon merged = null;
+        for (int i = 0; i < polygonsInSight.size(); i++) {
+            if (i==0) {
+                merged = mergeTwoPolygons(polygonsInSight.get(i), polygonsInSight.get(i+1));
+            } else if ((i+1) < polygonsInSight.size()) {
+                merged = mergeTwoPolygons(merged, polygonsInSight.get(i+1));
+            }
+        }
 
 
     }
 
+    /**
+     * returns the polygons that intersects with the given line in order from p1 to p2
+     * @param line
+     * @param effectedPolygonsP1
+     * @return
+     */
     private List<Polygon> getIntersectingPolygons(Line line, List<Polygon> effectedPolygonsP1) {
-        List<Polygon> polygonInTheRightDirection = null;
+        List<Polygon> polygonInTheRightDirection = Lists.newArrayList();
         for (Polygon polygon : effectedPolygonsP1) {
-            List<Point> points = polygon.getPoints();
-            for (int i=0; i< points.size(); i++) {
-                int curr = i;
-                int next = (i + 1) < points.size()? (i+1) : 0;
-                if (!line.isConnectedToLine(points.get(curr), points.get(next))) {
-                    if (areLinesIntersect(line, points, curr, next)) {
-                        polygonInTheRightDirection.add(polygon);
+            if (polygon != null) {
+                List<Point> points = polygon.getPoints();
+                for (int i=0; i< points.size(); i++) {
+                    int curr = i;
+                    int next = (i + 1) < points.size()? (i+1) : 0;
+                    if (!line.isConnectedToLine(points.get(curr), points.get(next))) {
+                        if (areLinesIntersect(line, points, curr, next)) {
+                            polygonInTheRightDirection.add(polygon);
+                        }
                     }
                 }
             }
-
         }
         return polygonInTheRightDirection;
     }
@@ -106,24 +107,33 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
     }
 
     private void fillPolygonsInTheRightDirection(Line line, Polygon currentPolygon, List<Polygon> polygonsInSight) {
-     //   getIntersectingPolygons(currentPolygon.g)
-      //  }
-       // polygonsInSight.add(polygonInTheRightDirection);
+        List<Polygon> intersectingPolygons = getIntersectingPolygons(line, currentPolygon.getAdjacentPolygons());
+        for (Polygon intersectingPolygon : intersectingPolygons) {
+            if (!polygonsInSight.contains(intersectingPolygon)) {
+                polygonsInSight.add(intersectingPolygon);
+                fillPolygonsInTheRightDirection(line, intersectingPolygon, polygonsInSight);
+            }
+        }
     }
 
-    private void mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
+    private Polygon mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
         mapOfPolygons.remove(polygonToMerge.getKey());
         mapOfPolygons.remove(rootToMergeInto.getKey());
 
-
-        mergeTwoPolygonsLogic(polygonToMerge, rootToMergeInto);
-
         polygons.remove(polygonToMerge);
-        mapOfPolygons.put(rootToMergeInto.getKey(), rootToMergeInto);
+        polygons.remove(rootToMergeInto);
+
+        Polygon p = mergeTwoPolygonsLogic(polygonToMerge, rootToMergeInto);
+
+        mapOfPolygons.put(p.getKey(), p);
+        polygons.add(p);
+
+        return p;
     }
 
-    private void mergeTwoPolygonsLogic(Polygon polygonToMerge, Polygon rootToMergeInto) {
-        Converter.mergeTwoPolygons(polygonToMerge, rootToMergeInto);
+    private Polygon mergeTwoPolygonsLogic(Polygon polygonToMerge, Polygon rootToMergeInto) {
+        Polygon polygon = Converter.mergeTwoPolygons(polygonToMerge, rootToMergeInto);
+        return polygon;
     }
 
     public ConstrainedDelaunayTriangulation(Point[] ps) {
@@ -133,7 +143,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         super(points);
         List<Triangle> triangulation = getTriangulation();
         mapOfPolygons = Converter.fromTrianglesToPolygons(triangulation);
-        polygons = mapOfPolygons.values();
+        polygons = new CopyOnWriteArrayList<Polygon>(mapOfPolygons.values());
     }
 
     public Collection<Polygon> getPolygons() {

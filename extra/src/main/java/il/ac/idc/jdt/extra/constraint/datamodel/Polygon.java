@@ -40,10 +40,6 @@ public class Polygon {
      *  If there is no polygon since the line is a part of the convex hull then the list will hold null.
      */
     private List<Polygon> adjacentPolygons = new CopyOnWriteArrayList<Polygon>();
-    /**
-     *  This is an indicator helper to weather this polygon should be merged with a polygon neighbour
-     */
-    private boolean markForMerge;
 
     /**
      * This makes it easier to extract a polygon object based on it's point
@@ -106,7 +102,7 @@ public class Polygon {
      * Rotated points and adjacent polygons to start from point p
      * @param p
      */
-    public void rotateOrderByLeadingPoint(Point p) {
+    public PointsPolygons getRotateOrderByLeadingPointWithoutLastPoint(Point p) {
         List<Point> firstHalfPoints = Lists.newArrayList();
         List<Polygon> firstHalfPolygons = Lists.newArrayList();
 
@@ -142,16 +138,13 @@ public class Polygon {
             polygonToIndexInList.put(polygonsLedByP.get(i), i);
         }
 
-        points = pointsLedByP;
-        adjacentPolygons = polygonsLedByP;
-    }
+        pointsLedByP.remove(polygonsLedByP.size()-1);
+        polygonsLedByP.remove(polygonsLedByP.size()-1);
 
-    public boolean isMarkForMerge() {
-        return markForMerge;
-    }
-
-    public void setMarkForMerge(boolean markForMerge) {
-        this.markForMerge = markForMerge;
+        PointsPolygons pointsPolygons = new PointsPolygons();
+        pointsPolygons.points = pointsLedByP;
+        pointsPolygons.polygons = polygonsLedByP;
+        return pointsPolygons;
     }
 
     public List<Polygon> getAdjacentPolygons() {
@@ -204,5 +197,42 @@ public class Polygon {
 
     public Set<Point> getKey() {
         return Sets.newHashSet(points);
+    }
+
+    public Polygon(List<Point> points, List<Polygon> adjacentPolygons) {
+        this.points = points;
+        this.adjacentPolygons = adjacentPolygons;
+        updateIndexes();
+    }
+
+    public Polygon() {
+
+    }
+
+    public void insertInIndex(int index, List<Point> points, List<Polygon> polygons) {
+        this.points.addAll(index, points);
+        this.adjacentPolygons.addAll(index, polygons);
+
+        updateIndexes();
+    }
+
+    private void updateIndexes() {
+        for (int i=0; i<points.size(); i++) {
+            pointToIndexInList.put(points.get(i), i);
+            polygonToIndexInList.put(adjacentPolygons.get(i), i);
+        }
+    }
+
+    public class PointsPolygons {
+        private List<Point> points = Lists.newArrayList();
+        private List<Polygon> polygons = Lists.newArrayList();
+
+        public List<Point> getPoints() {
+            return points;
+        }
+
+        public List<Polygon> getPolygons() {
+            return polygons;
+        }
     }
 }

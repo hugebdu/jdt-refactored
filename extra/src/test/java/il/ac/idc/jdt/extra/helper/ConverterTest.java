@@ -31,9 +31,6 @@ public class ConverterTest {
     private static Point p41;
     private static Point p73;
 
-    private static Point pp23;
-    private static Point pp54;
-
     @Test
     public void testConvert() {
         ArrayList<Triangle> triangles = generateTriangelsForTriangulation();
@@ -46,21 +43,27 @@ public class ConverterTest {
         Set<Point> key2 = Sets.newHashSet(p22, p55, p34);
         Polygon polygonRoot = setPolygonMap.get(key2);
 
-        Converter.mergeTwoPolygons(polygonToMerge, polygonRoot);
+        Polygon polygon = Converter.mergeTwoPolygons(polygonToMerge, polygonRoot);
 
-        System.out.println(polygonRoot);
+        assertEquals(polygon.getSize(), 4);
     }
 
     @Test
     public void testAddLine() {
+        testAddConstraint(2D, 3D, 5D, 4D, 6);
+        testAddConstraint(3D, 1D, 6D, 3D, 6);
+        testAddConstraint(1D, 2D, 5D, 4D, 4);
+        testAddConstraint(5D, 1D, 4D, 4D, 5);
+    }
+
+    private void testAddConstraint(double x1, double y1, double x2, double y2, int sizeToAssert) {
         ConstrainedDelaunayTriangulation delaunayTriangulation = generateLeagelTriangulation();
+        Point p1 = new Point(x1, y1, 2D);
+        Point p2 = new Point(x2, y2, 3D);
 
-        Point pp23 = new Point(2D, 3D, 2D);
-        Point pp54 = new Point(5D, 4D, 3D);
-
-        delaunayTriangulation.addConstraint(new Line(pp23, pp54));
+        delaunayTriangulation.addConstraint(new Line(p1, p2));
         Collection<Polygon> polygons = delaunayTriangulation.getPolygons();
-        System.out.println(polygons);
+        assertEquals(sizeToAssert, polygons.size());
     }
 
     public static ArrayList<Triangle> generateTriangelsForTriangulation() {
@@ -108,23 +111,15 @@ public class ConverterTest {
 
     public static ConstrainedDelaunayTriangulation generateLeagelTriangulation() {
         Point pp12 = new Point(1D, 2D, 1D);
-        pp23 = new Point(2D, 3D, 2D);
+        Point pp23 = new Point(2D, 3D, 2D);
         Point pp44 = new Point(4D, 4D, 3D);
-        pp54 = new Point(5D, 4D, 3D);
+        Point pp54 = new Point(5D, 4D, 3D);
         Point pp63 = new Point(6D, 3D, 4D);
         Point pp51 = new Point(5D, 1D, 5D);
         Point pp31 = new Point(3D, 1D, 6D);
         Point pp43 = new Point(4D, 3D, 6D);
 
         ConstrainedDelaunayTriangulation t = new ConstrainedDelaunayTriangulation(Lists.newArrayList(pp12, pp23, pp44, pp54, pp63, pp51, pp31, pp43));
-
-//        Triangle t1 = new Triangle(p23, p12, p31);
-//        Triangle t2 = new Triangle(p23, p31, p43);
-//        Triangle t3 = new Triangle(p23, p43, p44);
-//        Triangle t4 = new Triangle(p44, p54, p43);
-//        Triangle t5 = new Triangle(p54, p63, p43);
-//        Triangle t6 = new Triangle(p43, p63, p51);
-//        Triangle t7 = new Triangle(p43, p51, p31);
 //
         return t;
     }
