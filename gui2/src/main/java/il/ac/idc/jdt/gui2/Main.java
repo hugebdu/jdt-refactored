@@ -1,8 +1,14 @@
 package il.ac.idc.jdt.gui2;
 
+import com.google.common.collect.Lists;
 import com.google.common.eventbus.EventBus;
+import il.ac.idc.jdt.DelaunayTriangulation;
 import il.ac.idc.jdt.IOParsers;
 import il.ac.idc.jdt.Point;
+import il.ac.idc.jdt.Triangle;
+import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
+import il.ac.idc.jdt.extra.constraint.datamodel.*;
+import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +19,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -145,6 +152,9 @@ public class Main extends JFrame
         {
             List<Point> points = IOParsers.readPoints(file);
             eventBus.post(new LoadPointsEvent(this, points));
+            ConstrainedDelaunayTriangulation constrainedDelaunayTriangulation = new ConstrainedDelaunayTriangulation(points);
+
+            eventBus.post(new SegmentsPanel.LinesAddedEvent(this, constrainedDelaunayTriangulation));
         }
         catch (Exception e)
         {

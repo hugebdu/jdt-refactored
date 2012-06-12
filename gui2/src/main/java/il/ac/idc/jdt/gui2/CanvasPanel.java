@@ -2,25 +2,26 @@ package il.ac.idc.jdt.gui2;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.primitives.Doubles;
 import il.ac.idc.jdt.Point;
-import il.ac.idc.jdt.extra.constraint.datamodel.Line;
+import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
+import il.ac.idc.jdt.extra.constraint.datamodel.*;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.vecmath.Point2i;
 import java.awt.*;
+import java.awt.List;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
-import java.util.Collection;
-import java.util.EventObject;
-import java.util.Set;
+import java.util.*;
 
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Sets.newHashSet;
@@ -64,6 +65,8 @@ public class CanvasPanel extends JPanel
     SelectionGrid selectionGrid = new SelectionGrid();
     Collection<Point> points;
     Set<Line> segments;
+    Set<Line> lines;
+    ConstrainedDelaunayTriangulation t;
 
     AffineTransform transform = new AffineTransform();
     private final MouseManager mouseManager;
@@ -85,6 +88,7 @@ public class CanvasPanel extends JPanel
 
         paintPoints(graphics2D);
         paintSegments(graphics2D);
+        paintLines(graphics2D);
     }
 
     private void paintSegments(Graphics2D g)
@@ -93,6 +97,19 @@ public class CanvasPanel extends JPanel
         {
             g.setColor(Color.green);
             for (Line line : segments)
+            {
+                Line2D line2d = toLine2d(line);
+                g.draw(line2d);
+            }
+        }
+    }
+
+    private void paintLines(Graphics2D g)
+    {
+        if (lines != null)
+        {
+            g.setColor(Color.cyan);
+            for (Line line : lines)
             {
                 Line2D line2d = toLine2d(line);
                 g.draw(line2d);
@@ -235,6 +252,37 @@ public class CanvasPanel extends JPanel
         if (segments == null)
             segments = newHashSet();
         segments.add(event.line);
+
+        t.addConstraint(event.line);
+        if (lines != null) {
+            lines.clear();
+            lines.addAll(getLinesFromTriangulation());
+        }
+    }
+
+    @Subscribe
+    public void onLineAdded(LinesAddedEvent event)
+    {
+        this.t = event.triangulation;
+        java.util.List<Line> linesToPaint = getLinesFromTriangulation();
+        if (lines == null)
+            lines = newHashSet();
+        lines.addAll(linesToPaint);
+    }
+
+    private java.util.List<Line> getLinesFromTriangulation() {
+        java.util.List<Line> linesToPaint = Lists.newArrayList();
+
+        for (il.ac.idc.jdt.extra.constraint.datamodel.Polygon polygon : t.getPolygons()) {
+            java.util.List<Point> points1 = polygon.getPoints();
+            for (int i=0; i<points1.size(); i++) {
+                if (i+1<points1.size()) {
+                    Line ab = new Line(points1.get(i), points1.get(i+1));
+                    linesToPaint.add(ab);
+                }
+            }
+        }
+        return linesToPaint;
     }
 
     @Subscribe

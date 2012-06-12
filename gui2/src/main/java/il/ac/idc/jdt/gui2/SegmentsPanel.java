@@ -2,6 +2,7 @@ package il.ac.idc.jdt.gui2;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 
 import javax.swing.*;
@@ -157,6 +158,17 @@ public class SegmentsPanel extends JPanel
         {
             super(source);
             this.line = line;
+        }
+    }
+
+    public static class LinesAddedEvent extends EventObject
+    {
+        final ConstrainedDelaunayTriangulation triangulation;
+
+        public LinesAddedEvent(Object source, ConstrainedDelaunayTriangulation triangulation)
+        {
+            super(source);
+            this.triangulation = triangulation;
         }
     }
 }
