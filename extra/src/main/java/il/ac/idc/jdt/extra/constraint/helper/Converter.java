@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import il.ac.idc.jdt.Point;
+import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.Triangle;
 
@@ -39,7 +40,7 @@ public class Converter {
         Point intersectionPoint = getIntersectionPoint(polygonToMerge, rootToMergeInto);
         Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
 
-        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPointWithoutLastPoint(intersectionPoint);
+        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPoint(intersectionPoint, true);
 
         List<Polygon> polygons = Lists.newArrayList(rootToMergeInto.getAdjacentPolygons());
         List<Point> points = Lists.newArrayList(rootToMergeInto.getPoints());
@@ -55,6 +56,51 @@ public class Converter {
         updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
 
         return mergedPolygon;
+    }
+
+    public static void dividePolygonByLine(Line line, Polygon merged, Polygon side1, Polygon side2) {
+        Polygon.PointsPolygons rotateOrderByLeadingPoint = merged.getRotateOrderByLeadingPoint(line.getP1(), false);
+        List<Point> mergedPoints = rotateOrderByLeadingPoint.getPoints();
+        List<Polygon> mergedPolygons = rotateOrderByLeadingPoint.getPolygons();
+
+        List<Point> side1Points = Lists.newArrayList();
+        List<Polygon> side1Polygons = Lists.newArrayList();
+        int secondIntersection;
+        for (secondIntersection = 0; secondIntersection < mergedPoints.size(); secondIntersection++) {
+            if (!gotToOtherSide(line, mergedPoints, secondIntersection)) {
+                side1Points.add(mergedPoints.get(secondIntersection));
+                side1Polygons.add(mergedPolygons.get(secondIntersection));
+            }  else {
+                side1Points.add(mergedPoints.get(secondIntersection));
+                side1Polygons.add(mergedPolygons.get(secondIntersection));
+                break;
+            }
+        }
+
+        List<Point> side2Points = Lists.newArrayList();
+        List<Polygon> side2Polygons = Lists.newArrayList();
+        for (int firstIndexInSecondPolygon = secondIntersection; firstIndexInSecondPolygon < mergedPoints.size(); firstIndexInSecondPolygon++) {
+            side2Points.add(mergedPoints.get(firstIndexInSecondPolygon));
+            side2Polygons.add(mergedPolygons.get(firstIndexInSecondPolygon));
+        }
+
+        side2Points.add(mergedPoints.get(0));
+        side2Polygons.add(mergedPolygons.get(0));
+
+        side1Polygons.set(side1Polygons.size()-1, side2);
+        side2Polygons.set(side2Polygons.size()-1, side1);
+
+        side1.addPointsAndPolygons(side1Points, side1Polygons);
+        side2.addPointsAndPolygons(side2Points, side2Polygons);
+
+        updateAdjacent(merged, side1, side1.getAdjacentPolygons());
+        updateAdjacent(merged, side2, side2.getAdjacentPolygons());
+
+    }
+
+
+    private static boolean gotToOtherSide(Line line, List<Point> mergedPoints, int i) {
+        return mergedPoints.get(i).equals(line.getP2());
     }
 
     private static Point getIntersectionPoint(Polygon polygonToMerge, Polygon rootToMergeInto) {
@@ -79,6 +125,12 @@ public class Converter {
         updateAdjacent(rootToMergeInto, merged, adjacentPolygons);
     }
 
+    /**
+     *
+     * @param polygonToMerge - the previous polygon that acted as neighbour
+     * @param merged - the polygon to update to
+     * @param adjacentPolygons - the polygons that should be updated
+     */
     private static void updateAdjacent(Polygon polygonToMerge, Polygon merged, List<Polygon> adjacentPolygons) {
         for (Polygon adjacentPolygon : adjacentPolygons) {
             if (adjacentPolygon != null) {

@@ -57,7 +57,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
     }
 
     public void addConstraint(Line line) {
-
+        //stage 1
         List<Polygon> effectedPolygons = findEffectedPolygons(line.getP1());
         Polygon firstPolygon = getIntersectingPolygons(line, effectedPolygons).iterator().next();
 
@@ -73,8 +73,21 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
             }
         }
 
+        //stage 2
+        Polygon side1 = new Polygon();
+        Polygon side2 = new Polygon();
+        Converter.dividePolygonByLine(line, merged, side1, side2);
+
+        mapOfPolygons.remove(merged.getKey());
+        polygons.remove(merged);
+
+        mapOfPolygons.put(side1.getKey(), side1);
+        mapOfPolygons.put(side2.getKey(), side2);
+        polygons.add(side1) ;
+        polygons.add(side2) ;
 
     }
+
 
     /**
      * returns the polygons that intersects with the given line in order from p1 to p2
@@ -106,6 +119,12 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
                 points.get(curr).getX(), points.get(curr).getY(), points.get(next).getX(), points.get(next).getY());
     }
 
+    /**
+     * fills polygon in sight from the currentPolygon(directed form sideP1) along the line
+     * @param line
+     * @param currentPolygon
+     * @param polygonsInSight
+     */
     private void fillPolygonsInTheRightDirection(Line line, Polygon currentPolygon, List<Polygon> polygonsInSight) {
         List<Polygon> intersectingPolygons = getIntersectingPolygons(line, currentPolygon.getAdjacentPolygons());
         for (Polygon intersectingPolygon : intersectingPolygons) {

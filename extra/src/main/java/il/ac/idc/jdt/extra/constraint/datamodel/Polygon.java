@@ -102,7 +102,7 @@ public class Polygon {
      * Rotated points and adjacent polygons to start from point p
      * @param p
      */
-    public PointsPolygons getRotateOrderByLeadingPointWithoutLastPoint(Point p) {
+    public PointsPolygons getRotateOrderByLeadingPoint(Point p, boolean isWithoutLastPoint) {
         List<Point> firstHalfPoints = Lists.newArrayList();
         List<Polygon> firstHalfPolygons = Lists.newArrayList();
 
@@ -138,8 +138,10 @@ public class Polygon {
             polygonToIndexInList.put(polygonsLedByP.get(i), i);
         }
 
-        pointsLedByP.remove(polygonsLedByP.size()-1);
-        polygonsLedByP.remove(polygonsLedByP.size()-1);
+        if (isWithoutLastPoint) {
+            pointsLedByP.remove(polygonsLedByP.size()-1);
+            polygonsLedByP.remove(polygonsLedByP.size()-1);
+        }
 
         PointsPolygons pointsPolygons = new PointsPolygons();
         pointsPolygons.points = pointsLedByP;
@@ -200,6 +202,12 @@ public class Polygon {
     }
 
     public Polygon(List<Point> points, List<Polygon> adjacentPolygons) {
+        this.points = points;
+        this.adjacentPolygons = adjacentPolygons;
+        updateIndexes();
+    }
+
+    public void addPointsAndPolygons(List<Point> points, List<Polygon> adjacentPolygons) {
         this.points = points;
         this.adjacentPolygons = adjacentPolygons;
         updateIndexes();

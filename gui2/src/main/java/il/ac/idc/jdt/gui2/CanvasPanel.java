@@ -281,7 +281,11 @@ public class CanvasPanel extends JPanel
                     linesToPaint.add(ab);
                 }
             }
+
+            Line ab = new Line(points1.get(0), points1.get(points1.size()-1));
+            linesToPaint.add(ab);
         }
+        System.out.println(linesToPaint);
         return linesToPaint;
     }
 
