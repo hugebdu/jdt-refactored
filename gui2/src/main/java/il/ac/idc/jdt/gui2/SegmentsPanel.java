@@ -16,6 +16,7 @@ import java.util.Set;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static il.ac.idc.jdt.gui2.CanvasPanel.ClearEvent;
 
 /**
  * Created by IntelliJ IDEA.
@@ -30,6 +31,8 @@ public class SegmentsPanel extends JPanel
     
     final JList list;
     final DefaultListModel model = new DefaultListModel();
+
+    boolean editingEnabled = true;
 
     public SegmentsPanel(EventBus eventBus)
     {
@@ -77,9 +80,9 @@ public class SegmentsPanel extends JPanel
 
     private JMenuItem removeAllMenuItem()
     {
-        boolean enabled = !SegmentsPanel.this.model.isEmpty();
+        boolean hasItems = !SegmentsPanel.this.model.isEmpty();
         JMenuItem item = new JMenuItem(onRemoveAllSegments());
-        item.setEnabled(enabled);
+        item.setEnabled(hasItems && isSegmentsEditingEnabled());
         return item;
     }
 
@@ -99,11 +102,15 @@ public class SegmentsPanel extends JPanel
     private JMenuItem removeSelectedMenuItem()
     {
         Object[] selectedValues = list.getSelectedValues();
-        boolean enabled = selectedValues != null && selectedValues.length > 0;
+        boolean selected = selectedValues != null && selectedValues.length > 0;
         JMenuItem item = new JMenuItem(onRemoveSelectedSegment());
-        item.setEnabled(enabled);
+        item.setEnabled(selected && isSegmentsEditingEnabled());
         return item;
+    }
 
+    private boolean isSegmentsEditingEnabled()
+    {
+        return editingEnabled;
     }
 
     private Action onRemoveSelectedSegment()
@@ -129,6 +136,19 @@ public class SegmentsPanel extends JPanel
     public void onSegmentAdded(SegmentAddedEvent event)
     {
         model.addElement(event.line);
+    }
+
+    @Subscribe
+    public void onClear(ClearEvent event)
+    {
+        model.clear();
+        this.editingEnabled = true;
+    }
+
+    @Subscribe
+    public void onTriangulationCalculated(TriangulationCalculatedEvent event)
+    {
+        editingEnabled = false;
     }
     
     public static class SelectedSegmentsRemovedEvent extends EventObject
@@ -161,11 +181,11 @@ public class SegmentsPanel extends JPanel
         }
     }
 
-    public static class LinesAddedEvent extends EventObject
+    public static class TriangulationCalculatedEvent extends EventObject
     {
         final ConstrainedDelaunayTriangulation triangulation;
 
-        public LinesAddedEvent(Object source, ConstrainedDelaunayTriangulation triangulation)
+        public TriangulationCalculatedEvent(Object source, ConstrainedDelaunayTriangulation triangulation)
         {
             super(source);
             this.triangulation = triangulation;

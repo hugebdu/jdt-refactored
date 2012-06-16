@@ -1,14 +1,11 @@
 package il.ac.idc.jdt.gui2;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import com.google.common.eventbus.EventBus;
-import il.ac.idc.jdt.DelaunayTriangulation;
 import il.ac.idc.jdt.IOParsers;
 import il.ac.idc.jdt.Point;
-import il.ac.idc.jdt.Triangle;
 import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
-import il.ac.idc.jdt.extra.constraint.datamodel.*;
-import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
+import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,14 +15,13 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static il.ac.idc.jdt.gui2.CanvasPanel.ClearEvent;
 import static il.ac.idc.jdt.gui2.CanvasPanel.LoadPointsEvent;
-import static il.ac.idc.jdt.gui2.SegmentsPanel.LinesAddedEvent;
+import static il.ac.idc.jdt.gui2.SegmentsPanel.TriangulationCalculatedEvent;
 import static java.lang.String.format;
 
 /**
@@ -69,7 +65,9 @@ public class Main extends JFrame
         setMenuBar(menuBar(
                 menu("File",
                         menuItem("Load...", loadFileAction()),
-                        menuItem("Clear", clearAction()))));
+                        menuItem("Clear", clearAction())),
+                menu("Triangulation",
+                        menuItem("Run", runTriangulationAction()))));
 
         // canvas panel
         canvasPanel = new CanvasPanel(eventBus);
@@ -85,6 +83,28 @@ public class Main extends JFrame
         add(statusPanel, BorderLayout.PAGE_END);
 
         pack();
+    }
+
+    private Action runTriangulationAction()
+    {
+        return new AbstractAction()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                TriangulationDataSource dataSource = getTriangulationDataSource();
+                if (!Iterables.isEmpty(dataSource.getPoints()))
+                {
+                    Main.this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                    new TriangulationWorker(dataSource).execute();
+                }
+            }
+        };
+    }
+
+    private TriangulationDataSource getTriangulationDataSource()
+    {
+        return canvasPanel;
     }
 
     private Action clearAction()
@@ -153,9 +173,6 @@ public class Main extends JFrame
         {
             List<Point> points = IOParsers.readPoints(file);
             eventBus.post(new LoadPointsEvent(this, points));
-            ConstrainedDelaunayTriangulation constrainedDelaunayTriangulation = new ConstrainedDelaunayTriangulation(points);
-
-            eventBus.post(new LinesAddedEvent(this, constrainedDelaunayTriangulation));
         }
         catch (Exception e)
         {
@@ -183,5 +200,55 @@ public class Main extends JFrame
             if (containsKey(actionCommand))
                 get(actionCommand).actionPerformed(e);
         }
+    }
+
+    class TriangulationWorker extends SwingWorker<ConstrainedDelaunayTriangulation, Object>
+    {
+        final TriangulationDataSource dataSource;
+
+        TriangulationWorker(TriangulationDataSource dataSource)
+        {
+            this.dataSource = dataSource;
+        }
+
+        @Override
+        protected ConstrainedDelaunayTriangulation doInBackground() throws Exception
+        {
+            ConstrainedDelaunayTriangulation triangulation = new ConstrainedDelaunayTriangulation(
+                    newHashSet(dataSource.getPoints()));
+
+            for (Line constraint : dataSource.getSegments())
+                triangulation.addConstraint(constraint);
+            
+            return triangulation;
+        }
+
+        @Override
+        protected void done()
+        {
+            try
+            {
+                eventBus.post(new TriangulationCalculatedEvent(Main.this, get()));
+            }
+            catch (Exception e)
+            {
+                String message = "Failed running constrained triangulation";
+                JOptionPane.showMessageDialog(Main.this,
+                        message,
+                        "Error running triangulation",
+                        JOptionPane.ERROR_MESSAGE);
+                LOGGER.warn(message, e);
+            }
+            finally
+            {
+                setCursor(Cursor.getDefaultCursor());
+            }
+        }
+    }
+    
+    public interface TriangulationDataSource
+    {
+        Iterable<Point> getPoints();
+        Iterable<Line> getSegments();
     }
 }

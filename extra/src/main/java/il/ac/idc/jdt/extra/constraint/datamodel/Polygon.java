@@ -1,12 +1,11 @@
 package il.ac.idc.jdt.extra.constraint.datamodel;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import il.ac.idc.jdt.Point;
 
-import java.security.PrivateKey;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -159,6 +158,33 @@ public class Polygon {
 
     public List<Point> getPoints() {
         return points;
+    }
+
+    public ImmutableList<Line> getHull()
+    {
+        if (points == null || points.size() < 2)
+            return ImmutableList.of();
+
+        ImmutableList.Builder<Line> builder = ImmutableList.builder();
+        
+        Point previousPoint = null;
+
+        for (Point point : points)
+        {
+            if (previousPoint == null)
+            {
+                previousPoint = point;
+            }
+            else
+            {
+                builder.add(new Line(previousPoint, point));
+                previousPoint = point;
+            }
+        }
+
+        builder.add(new Line(previousPoint, getPoints().get(0)));
+
+        return builder.build();
     }
 
     public void removeByIndex(int i) {

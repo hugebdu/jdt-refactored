@@ -21,13 +21,15 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
-import java.util.Collection;
-import java.util.EventObject;
+import java.util.*;
 import java.util.List;
-import java.util.Set;
 
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Sets.newHashSet;
+import static il.ac.idc.jdt.gui2.Main.TriangulationDataSource;
 import static il.ac.idc.jdt.gui2.SegmentsPanel.*;
 import static il.ac.idc.jdt.gui2.StatusPanel.MouseOverPointEvent;
 import static java.util.Arrays.asList;
@@ -37,7 +39,7 @@ import static java.util.Arrays.asList;
  * User: daniels
  * Date: 5/27/12
  */
-public class CanvasPanel extends JPanel
+public class CanvasPanel extends JPanel implements TriangulationDataSource
 {
     private static final Ordering<Point> xOrdering = new Ordering<Point>()
     {
@@ -57,19 +59,27 @@ public class CanvasPanel extends JPanel
         }
     };
 
+    private static final Function<Polygon, Iterable<Line>> toHullLines = new Function<Polygon, Iterable<Line>>()
+    {
+        @Override
+        public Iterable<Line> apply(Polygon polygon)
+        {
+            return polygon.getHull();
+        }
+    };
 
     private static final Color     POINT_COLOR                = Color.black;
     private static final Dimension DIMENSION                  = new Dimension(800, 600);
     private static final int       PADDING                    = 20;
+
     private static final double    SELECTION_GRID_HALF_RADIUS = 3;
 
     final EventBus eventBus;
-
     SelectionGrid selectionGrid = new SelectionGrid();
     Collection<Point> points;
     Set<Line> segments;
-    Set<Line> lines;
-    ConstrainedDelaunayTriangulation t;
+
+    ConstrainedDelaunayTriangulation triangulation;
 
     AffineTransform transform = new AffineTransform();
     private final MouseManager mouseManager;
@@ -111,7 +121,9 @@ public class CanvasPanel extends JPanel
 
     private void paintLines(Graphics2D g)
     {
-        if (lines != null)
+        Collection<Line> lines = extractLinesFromTriangulation();
+        
+        if (!lines.isEmpty())
         {
             g.setColor(Color.lightGray);
             for (Line line : lines)
@@ -121,7 +133,15 @@ public class CanvasPanel extends JPanel
             }
         }
     }
-    
+
+    private Collection<Line> extractLinesFromTriangulation()
+    {
+        if (triangulation == null)
+            return Collections.emptyList();
+
+        return newArrayList(concat(transform(triangulation.getPolygons(), toHullLines)));
+    }
+
     private Function<Line, Line2D> toLine2d()
     {
         return new Function<Line, Line2D>()
@@ -191,9 +211,16 @@ public class CanvasPanel extends JPanel
                 (int) point.getY());
     }
 
-    public Collection<Point> getPoints()
+    @Override
+    public Iterable<Point> getPoints()
     {
-        return points;
+        return points != null ? points : Collections.<Point>emptyList();
+    }
+
+    @Override
+    public Iterable<Line> getSegments()
+    {
+        return segments != null ? segments : Collections.<Line>emptyList();
     }
 
     public void setPoints(Point... points)
@@ -255,44 +282,41 @@ public class CanvasPanel extends JPanel
     {
         if (segments == null)
             segments = newHashSet();
+        
         segments.add(event.line);
 
-        t.addConstraint(event.line);
-        if (lines != null) {
-            lines.clear();
-            lines.addAll(getLinesFromTriangulation());
-        }
+//        triangulation.addConstraint(event.line);
+//        if (lines != null) {
+//            lines.clear();
+//            lines.addAll(getLinesFromTriangulation());
+//        }
     }
 
     @Subscribe
-    public void onLineAdded(LinesAddedEvent event)
+    public void onTriangulationCalculated(TriangulationCalculatedEvent event)
     {
-        this.t = event.triangulation;
-        List<Line> linesToPaint = getLinesFromTriangulation();
-        if (lines == null)
-            lines = newHashSet();
-        lines.addAll(linesToPaint);
+        this.triangulation = event.triangulation;
+        repaint();
     }
 
     private List<Line> getLinesFromTriangulation()
     {
         List<Line> linesToPaint = Lists.newArrayList();
 
-        for (Polygon polygon : t.getPolygons())
+        for (Polygon polygon : triangulation.getPolygons())
         {
             List<Point> points1 = polygon.getPoints();
             for (int i = 0; i < points1.size(); i++) {
                 if (i + 1 < points1.size())
                 {
-                    Line ab = new Line(points1.get(i), points1.get(i+1));
+                    Line ab = new Line(points1.get(i), points1.get(i + 1));
                     linesToPaint.add(ab);
                 }
             }
 
-            Line ab = new Line(points1.get(0), points1.get(points1.size()-1));
+            Line ab = new Line(points1.get(0), points1.get(points1.size() - 1));
             linesToPaint.add(ab);
         }
-//        System.out.println(linesToPaint);
         return linesToPaint;
     }
 
@@ -315,9 +339,10 @@ public class CanvasPanel extends JPanel
     {
         points = newLinkedList();
         segments = newHashSet();
+        triangulation = null;
         mouseManager.reset();
+        
         repaint();
-        //TODO: implement
     }
 
     public static class LoadPointsEvent extends EventObject
@@ -357,6 +382,9 @@ public class CanvasPanel extends JPanel
                 @Override
                 public void mouseClicked(MouseEvent e)
                 {
+                    if (!isSegmentsEditingEnabled())
+                        return;
+
                     if (hovered != null)
                     {
                         if (selected != null && !selected.equals(hovered))
@@ -447,6 +475,11 @@ public class CanvasPanel extends JPanel
             hovered = null;
         }
 
+    }
+
+    private boolean isSegmentsEditingEnabled()
+    {
+        return triangulation == null;
     }
 
     private boolean segmentAllowed(Point p1, Point p2)
