@@ -25,6 +25,7 @@ import java.util.List;
 
 import static il.ac.idc.jdt.gui2.CanvasPanel.ClearEvent;
 import static il.ac.idc.jdt.gui2.CanvasPanel.LoadPointsEvent;
+import static il.ac.idc.jdt.gui2.SegmentsPanel.LinesAddedEvent;
 import static java.lang.String.format;
 
 /**
@@ -154,7 +155,7 @@ public class Main extends JFrame
             eventBus.post(new LoadPointsEvent(this, points));
             ConstrainedDelaunayTriangulation constrainedDelaunayTriangulation = new ConstrainedDelaunayTriangulation(points);
 
-            eventBus.post(new SegmentsPanel.LinesAddedEvent(this, constrainedDelaunayTriangulation));
+            eventBus.post(new LinesAddedEvent(this, constrainedDelaunayTriangulation));
         }
         catch (Exception e)
         {
