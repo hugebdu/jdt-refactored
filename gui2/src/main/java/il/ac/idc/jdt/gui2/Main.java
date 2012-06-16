@@ -22,6 +22,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static il.ac.idc.jdt.gui2.CanvasPanel.ClearEvent;
 import static il.ac.idc.jdt.gui2.CanvasPanel.LoadPointsEvent;
 import static il.ac.idc.jdt.gui2.SegmentsPanel.TriangulationCalculatedEvent;
+import static il.ac.idc.jdt.gui2.SegmentsPanel.TriangulationResetEvent;
 import static java.lang.String.format;
 
 /**
@@ -66,7 +67,8 @@ public class Main extends JFrame
                         menuItem(loadFileAction()),
                         menuItem(clearAction())),
                 menu("Triangulation",
-                        menuItem(runTriangulationAction()))));
+                        menuItem(runTriangulationAction()),
+                        menuItem(resetTriangulationAction()))));
 
         // canvas panel
         canvasPanel = new CanvasPanel(eventBus);
@@ -82,6 +84,18 @@ public class Main extends JFrame
         add(statusPanel, BorderLayout.PAGE_END);
 
         pack();
+    }
+
+    private Action resetTriangulationAction()
+    {
+        return new AbstractAction("Reset")
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                eventBus.post(new TriangulationResetEvent(Main.this));
+            }
+        };
     }
 
     private Action runTriangulationAction()

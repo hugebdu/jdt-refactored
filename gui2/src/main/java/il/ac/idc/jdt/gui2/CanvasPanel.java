@@ -20,7 +20,6 @@ import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.util.*;
 import java.util.List;
 
@@ -69,20 +68,25 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     };
 
     private static final Color     POINT_COLOR                = Color.black;
-    private static final Dimension DIMENSION                  = new Dimension(800, 600);
+    private static final Dimension DIMENSION                  = new Dimension(800, 620);
     private static final int       PADDING                    = 20;
 
     private static final double    SELECTION_GRID_HALF_RADIUS = 3;
 
     final EventBus eventBus;
+
     SelectionGrid selectionGrid = new SelectionGrid();
+
     Collection<Point> points;
     Set<Line> segments;
-
     ConstrainedDelaunayTriangulation triangulation;
 
-    AffineTransform transform = new AffineTransform();
     private final MouseManager mouseManager;
+
+    private double xScaleFactor;
+    private double yScaleFactor;
+    private double xScaledPadding;
+    private double yScaledPadding;
 
     public CanvasPanel(EventBus eventBus)
     {
@@ -97,13 +101,22 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     protected void paintComponent(Graphics g)
     {
         super.paintComponent(g);
+
         Graphics2D graphics2D = (Graphics2D) g;
 
-        graphics2D.setTransform(transform);
+        AffineTransform savedTransform = graphics2D.getTransform();
 
-        paintLines(graphics2D);
-        paintPoints(graphics2D);
-        paintSegments(graphics2D);
+        try
+        {
+            setupTransform(graphics2D);
+            paintLines(graphics2D);
+            paintPoints(graphics2D, savedTransform);
+            paintSegments(graphics2D);
+        }
+        finally
+        {
+            graphics2D.setTransform(savedTransform);
+        }
     }
 
     private void paintSegments(Graphics2D g)
@@ -161,7 +174,7 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                 line.getP2().getX(), line.getP2().getY());
     }
 
-    private void paintPoints(Graphics2D g)
+    private void paintPoints(Graphics2D g, AffineTransform savedTransform)
     {
         if (points == null || points.isEmpty())
             return;
@@ -169,39 +182,51 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
         g.setColor(POINT_COLOR);
 
         for (Point point : points)
-            paintPoint(point, g);
+            paintPoint(point, g, savedTransform);
     }
 
-    private void paintPoint(Point point, Graphics2D g)
+    private void paintPoint(Point point, Graphics2D g, AffineTransform savedTransform)
     {
         Point2i intPoint = toIntPoint(point);
 
         g.drawLine(intPoint.x, intPoint.y, intPoint.x, intPoint.y);
 
         if (point == mouseManager.getSelected())
-            paintSelectedPoint(point, g);
+            paintSelectedPoint(point, g, savedTransform);
     }
 
-    private void paintSelectedPoint(Point point, Graphics2D g)
+    private void paintSelectedPoint(Point point, Graphics2D g, AffineTransform savedTransform)
     {
         Color prevColor = g.getColor();
         AffineTransform prevTransform = g.getTransform();
 
-        g.setTransform(new AffineTransform());
-        g.setColor(Color.red);
+        try
+        {
+            g.setTransform(savedTransform);
 
-        Point2i transformedPoint = toTransformedIntPoint(point);
+            g.setColor(Color.red);
 
-        Ellipse2D circle = new Ellipse2D.Double(
-                transformedPoint.x - 3,
-                transformedPoint.y - 3,
-                6,
-                6);
+            Point2i transformedPoint = toTransformedIntPoint(point);
 
-        g.draw(circle);
+            Ellipse2D circle = new Ellipse2D.Double(
+                    transformedPoint.x - 3,
+                    transformedPoint.y - 3,
+                    6,
+                    6);
 
-        g.setColor(prevColor);
-        g.setTransform(prevTransform);
+            g.draw(circle);
+        }
+        finally
+        {
+            g.setColor(prevColor);
+            g.setTransform(prevTransform);
+        }
+    }
+
+    private void setupTransform(Graphics2D g)
+    {
+        g.scale(xScaleFactor, yScaleFactor);
+        g.translate(xScaledPadding, yScaledPadding);
     }
 
     private Point2i toIntPoint(Point point)
@@ -242,12 +267,10 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
 
     Point2i toTransformedIntPoint(Point point)
     {
-        Point2D source = new Point2D.Double(point.getX(), point.getY());
-        Point2D target = new Point2D.Double();
-        transform.transform(source, target);
         return new Point2i(
-                (int) target.getX(),
-                (int) target.getY());
+                (int) ((point.getX() + xScaledPadding) * xScaleFactor),
+                (int) ((point.getY() + yScaledPadding) * yScaleFactor )
+        );
     }
 
     void adjustAffineTransformation()
@@ -258,16 +281,11 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
         double maxY = yOrdering.max(points).getY();
         double minY = yOrdering.min(points).getY();
 
-        double xScaleFactor = (DIMENSION.getWidth() - PADDING) / (maxX - minX);
-        double yScaleFactor = (DIMENSION.getHeight() - PADDING) / (maxY - minY);
+        xScaleFactor = (DIMENSION.getWidth() - PADDING) / (maxX - minX);
+        yScaleFactor = (DIMENSION.getHeight() - PADDING) / (maxY - minY);
 
-        transform = new AffineTransform();
-        transform.scale(xScaleFactor, yScaleFactor);
-
-        double xScaledPadding = PADDING * (1 / xScaleFactor) / 2;
-        double yScaledPadding = PADDING * (1 / yScaleFactor) / 2;
-
-        transform.translate(xScaledPadding - minX, yScaledPadding - minY);
+        xScaledPadding = PADDING * (1 / xScaleFactor) / 2 - minX;
+        yScaledPadding = PADDING * (1 / yScaleFactor) / 2 - minY;
     }
 
     @Subscribe
@@ -284,18 +302,19 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
             segments = newHashSet();
         
         segments.add(event.line);
-
-//        triangulation.addConstraint(event.line);
-//        if (lines != null) {
-//            lines.clear();
-//            lines.addAll(getLinesFromTriangulation());
-//        }
     }
 
     @Subscribe
     public void onTriangulationCalculated(TriangulationCalculatedEvent event)
     {
         this.triangulation = event.triangulation;
+        repaint();
+    }
+
+    @Subscribe
+    public void onTriangulationReset(TriangulationResetEvent event)
+    {
+        this.triangulation = null;
         repaint();
     }
 
@@ -470,12 +489,10 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
             };
         }
 
-
         public void reset()
         {
             hovered = null;
         }
-
     }
 
     private boolean isSegmentsEditingEnabled()

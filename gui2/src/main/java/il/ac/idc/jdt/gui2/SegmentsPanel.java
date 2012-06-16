@@ -150,6 +150,12 @@ public class SegmentsPanel extends JPanel
     {
         editingEnabled = false;
     }
+
+    @Subscribe
+    public void onTriangulationReset(TriangulationResetEvent event)
+    {
+        editingEnabled = true;
+    }
     
     public static class SelectedSegmentsRemovedEvent extends EventObject
     {
@@ -178,6 +184,14 @@ public class SegmentsPanel extends JPanel
         {
             super(source);
             this.line = line;
+        }
+    }
+
+    public static class TriangulationResetEvent extends EventObject
+    {
+        public TriangulationResetEvent(Object source)
+        {
+            super(source);
         }
     }
 
