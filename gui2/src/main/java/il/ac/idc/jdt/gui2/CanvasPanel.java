@@ -453,7 +453,8 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                         {
                             eventBus.post(new MouseOverPointEvent(CanvasPanel.this, point));
                             hovered = point;
-                            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                            if (isSegmentsEditingEnabled())
+                                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                         }
                     }
                     else
