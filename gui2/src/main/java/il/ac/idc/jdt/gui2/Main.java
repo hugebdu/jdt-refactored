@@ -11,11 +11,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
-import java.util.HashMap;
 import java.util.List;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -38,7 +38,6 @@ public class Main extends JFrame
     SegmentsPanel segmentsPanel;
     
     final EventBus eventBus = new EventBus();
-    final MenuDispatcher menuDispatcher = new MenuDispatcher();
 
     Main()
     {
@@ -62,12 +61,12 @@ public class Main extends JFrame
         setLayout(new BorderLayout());
 
         // menu
-        setMenuBar(menuBar(
+        setJMenuBar(menuBar(
                 menu("File",
-                        menuItem("Load...", loadFileAction()),
-                        menuItem("Clear", clearAction())),
+                        menuItem(loadFileAction()),
+                        menuItem(clearAction())),
                 menu("Triangulation",
-                        menuItem("Run", runTriangulationAction()))));
+                        menuItem(runTriangulationAction()))));
 
         // canvas panel
         canvasPanel = new CanvasPanel(eventBus);
@@ -87,17 +86,26 @@ public class Main extends JFrame
 
     private Action runTriangulationAction()
     {
-        return new AbstractAction()
+        return new AbstractAction("Run")
         {
             @Override
             public void actionPerformed(ActionEvent e)
             {
                 TriangulationDataSource dataSource = getTriangulationDataSource();
-                if (!Iterables.isEmpty(dataSource.getPoints()))
+                if (!isEmpty())
                 {
                     Main.this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                     new TriangulationWorker(dataSource).execute();
                 }
+            }
+
+            private boolean isEmpty()
+            {
+                TriangulationDataSource dataSource = getTriangulationDataSource();
+                if (dataSource == null)
+                    return true;
+
+                return Iterables.isEmpty(dataSource.getPoints());
             }
         };
     }
@@ -109,7 +117,7 @@ public class Main extends JFrame
 
     private Action clearAction()
     {
-        return new AbstractAction()
+        return new AbstractAction("Clear")
         {
             @Override
             public void actionPerformed(ActionEvent e)
@@ -119,34 +127,30 @@ public class Main extends JFrame
         };
     }
 
-    private MenuBar menuBar(Menu ... menus)
+    private JMenuBar menuBar(JMenu ... menus)
     {
-        MenuBar menuBar = new MenuBar();
-        for (Menu menu : menus)
+        JMenuBar menuBar = new JMenuBar();
+        for (JMenu menu : menus)
             menuBar.add(menu);
         return menuBar;
     }
     
-    private Menu menu(String text, MenuItem ... items)
+    private JMenu menu(String text, JMenuItem ... items)
     {
-        Menu menu = new Menu(text);
-        for (MenuItem item : items)
+        JMenu menu = new JMenu(text);
+        for (JMenuItem item : items)
             menu.add(item);
         return menu;
     }
     
-    private MenuItem menuItem(String text, Action action)
+    private JMenuItem menuItem(Action action)
     {
-        MenuItem menuItem = new MenuItem(text);
-        menuItem.setActionCommand(text);
-        menuItem.addActionListener(menuDispatcher);
-        menuDispatcher.put(text, action);
-        return menuItem;
+        return new JMenuItem(action);
     }
 
     private Action loadFileAction()
     {
-        return new AbstractAction()
+        return new AbstractAction("Load...")
         {
             final JFileChooser fileChooser = createFileChooser();
 
@@ -192,17 +196,6 @@ public class Main extends JFrame
     {
         Main main = new Main();
         main.doShow();
-    }
-
-    class MenuDispatcher extends HashMap<String, Action> implements ActionListener
-    {
-        @Override
-        public void actionPerformed(ActionEvent e)
-        {
-            String actionCommand = e.getActionCommand();
-            if (containsKey(actionCommand))
-                get(actionCommand).actionPerformed(e);
-        }
     }
 
     class TriangulationWorker extends SwingWorker<ConstrainedDelaunayTriangulation, Object>
