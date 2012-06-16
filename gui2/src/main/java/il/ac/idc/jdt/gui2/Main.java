@@ -155,7 +155,10 @@ public class Main extends JFrame
             {
                 int result = fileChooser.showOpenDialog(Main.this);
                 if (result == JFileChooser.APPROVE_OPTION)
+                {
+                    eventBus.post(new ClearEvent(Main.this));
                     tryLoadingFile(fileChooser.getSelectedFile());
+                }
             }
 
             private JFileChooser createFileChooser()
