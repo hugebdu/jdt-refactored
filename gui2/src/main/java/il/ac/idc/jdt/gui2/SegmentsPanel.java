@@ -10,9 +10,7 @@ import javax.swing.border.BevelBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.util.EventObject;
 import java.util.Set;
 
@@ -79,6 +77,28 @@ public class SegmentsPanel extends JPanel
             }
         });
         
+        list.addKeyListener(new KeyAdapter()
+        {
+            @Override
+            public void keyPressed(KeyEvent e)
+            {
+                Object[] selectedValues = list.getSelectedValues();
+
+                if (isDeletePressed(e) && hasSelectedItems(selectedValues))
+                    removeSelectedItems(selectedValues);
+            }
+
+            private boolean hasSelectedItems(Object[] selectedValues)
+            {
+                return selectedValues != null && selectedValues.length > 0;
+            }
+
+            private boolean isDeletePressed(KeyEvent e)
+            {
+                return e.getKeyCode() == KeyEvent.VK_DELETE;
+            }
+        });
+
         list.addListSelectionListener(new ListSelectionListener()
         {
             @SuppressWarnings("SuspiciousToArrayCall")
@@ -147,14 +167,18 @@ public class SegmentsPanel extends JPanel
             public void actionPerformed(ActionEvent e)
             {
                 Object[] selectedValues = list.getSelectedValues();
-
-                for (Object selectedValue : selectedValues)
-                    model.removeElement(selectedValue);
-
-                Line[] selectedLines = newArrayList(selectedValues).toArray(new Line[selectedValues.length]);
-                eventBus.post(new SelectedSegmentsRemovedEvent(SegmentsPanel.this, newHashSet(selectedLines)));
+                removeSelectedItems(selectedValues);
             }
         };
+    }
+
+    private void removeSelectedItems(Object[] selectedValues)
+    {
+        for (Object selectedValue : selectedValues)
+            model.removeElement(selectedValue);
+
+        Line[] selectedLines = newArrayList(selectedValues).toArray(new Line[selectedValues.length]);
+        eventBus.post(new SelectedSegmentsRemovedEvent(this, newHashSet(selectedLines)));
     }
 
     @Subscribe
