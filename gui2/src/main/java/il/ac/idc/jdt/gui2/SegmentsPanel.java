@@ -53,7 +53,7 @@ public class SegmentsPanel extends JPanel
         };
 
         list.setBorder(new BevelBorder(BevelBorder.LOWERED));
-        list.setPreferredSize(new Dimension(230, 200));
+        list.setPreferredSize(new Dimension(230, 580));
         list.addMouseListener(new MouseAdapter()
         {
             @Override
