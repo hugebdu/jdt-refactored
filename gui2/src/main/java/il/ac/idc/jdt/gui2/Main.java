@@ -197,6 +197,7 @@ public class Main extends JFrame
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             String message = format("Failed to load points from file %s: %s", file.getAbsolutePath(), e.getMessage());
             JOptionPane.showMessageDialog(this,
                     message,
@@ -242,6 +243,7 @@ public class Main extends JFrame
             }
             catch (Exception e)
             {
+                e.printStackTrace();
                 String message = "Failed running constrained triangulation";
                 JOptionPane.showMessageDialog(Main.this,
                         message,

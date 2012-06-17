@@ -6,6 +6,7 @@ import il.ac.idc.jdt.DelaunayTriangulation;
 import il.ac.idc.jdt.Point;
 import il.ac.idc.jdt.Triangle;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
+import il.ac.idc.jdt.extra.constraint.datamodel.PointsXComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.PointsYComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.extra.constraint.helper.HelperMethods;
@@ -136,7 +137,12 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
             }
         }
         List<Line> linesToReturn = Lists.newArrayList();
-        Collections.sort(pointsOnLongSegment, new PointsYComparator());
+
+        if (line.getP1().getY() == line.getP2().getY()) {
+            Collections.sort(pointsOnLongSegment, new PointsXComparator());
+        } else {
+            Collections.sort(pointsOnLongSegment, new PointsYComparator());
+        }
         for (int i=0; i< pointsOnLongSegment.size()-1; i++) {
             linesToReturn.add(new Line(pointsOnLongSegment.get(i), pointsOnLongSegment.get(i+1)));
         }
