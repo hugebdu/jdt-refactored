@@ -3,11 +3,7 @@ package il.ac.idc.jdt.extra.los;
 import il.ac.idc.jdt.DelaunayTriangulation;
 import il.ac.idc.jdt.IOParsers;
 import il.ac.idc.jdt.Point;
-import il.ac.idc.jdt.extra.los.Section;
-import il.ac.idc.jdt.extra.los.Visibility;
 import org.junit.Test;
-
-import il.ac.idc.jdt.extra.constraint.helper.Converter;
 
 import java.io.IOException;
 import java.util.List;

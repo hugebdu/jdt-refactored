@@ -5,13 +5,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import il.ac.idc.jdt.Point;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
+import il.ac.idc.jdt.extra.constraint.datamodel.PointsYComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.Triangle;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.awt.geom.Line2D;
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -20,7 +19,7 @@ import java.util.Set;
  * Time: 10:52 PM
  * To change this template use File | Settings | File Templates.
  */
-public class Converter {
+public class HelperMethods {
     /**
      * Helps in converting from one data structure to another
      * @param triangles
@@ -172,5 +171,90 @@ public class Converter {
 
     private static boolean isNewPolygon(Map<Set<Point>, Polygon> mapOfPolygons, HashSet<Point> keyOfCurrentTriangle) {
         return !mapOfPolygons.containsKey(keyOfCurrentTriangle);
+    }
+
+
+    public static boolean isLineInsidePolygon(Polygon polygon, Line line, double maxHeight) {
+        if (polygon.doesLineCrossPolygon(line)) {
+            return false;
+        } else {
+            Point pointForVerticalLine = createDescriptorPointOfLine(line);
+            Line verticalLineFromPoint = new Line(pointForVerticalLine, new Point(pointForVerticalLine.getX(), maxHeight));
+
+            List<Point> intersectionPoints = Lists.newArrayList(pointForVerticalLine);
+            List<Line> linesFromPolygon = polygon.getLinesFromPolygon();
+            //if somehow we managed to send line to split by which is one of the original polygon lines
+            if (linesFromPolygon.contains(line)) {
+                return false;
+            }
+            for (Line lineFromPolygon : linesFromPolygon) {
+                if (lineFromPolygon != null) {
+                    Point intersectionPoint = findIntersectionPoint(lineFromPolygon, verticalLineFromPoint);
+                    if (intersectionPoint != null) {
+                        intersectionPoints.add(intersectionPoint);
+                    }
+                }
+            }
+
+            int numOfCrossAbove = getNumberOfCrossAboveIntersectionPoint(pointForVerticalLine, intersectionPoints);
+            return (numOfCrossAbove%2==1);
+        }
+    }
+
+    private static int getNumberOfCrossAboveIntersectionPoint(Point pointForVerticalLine, List<Point> intersectionPoints) {
+        int numOfCrossAbove = 0;
+        Collections.sort(intersectionPoints, new PointsYComparator());
+        for (int i = 0; i < intersectionPoints.size(); i++) {
+            if (intersectionPoints.get(i).equals(pointForVerticalLine)) {
+                numOfCrossAbove = intersectionPoints.size() - i + 1;
+            }
+        }
+        return numOfCrossAbove;
+    }
+
+    private static Point createDescriptorPointOfLine(Line line) {
+        return new Point((line.getP1().getX() + line.getP2().getX())/2, (line.getP1().getY() + line.getP2().getY())/2);
+    }
+
+    /**
+     * If Lines intersect return the point of intersection
+     * If lines share the same point return null;
+     * If the intersection is not on the lines then return null also
+     * If parallel return null
+     * @param l1
+     * @param l2
+     * @return
+     */
+    public static Point findIntersectionPoint(Line l1, Line l2) {
+
+        if (l1.isConnectedToLine(l2.getP1(), l2.getP2())) {
+            return null;
+        }
+
+        double x1 = l1.getP1().getX();
+        double x2 = l1.getP2().getX();
+        double y1 = l1.getP1().getY();
+        double y2 = l1.getP2().getY();
+
+        double x3 = l2.getP1().getX();
+        double x4 = l2.getP2().getX();
+        double y3 = l2.getP1().getY();
+        double y4 = l2.getP2().getY();
+        double d = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
+        if (d == 0) return null;
+
+        double xi = ((x3-x4)*(x1*y2-y1*x2)-(x1-x2)*(x3*y4-y3*x4))/d;
+        double yi = ((y3-y4)*(x1*y2-y1*x2)-(y1-y2)*(x3*y4-y3*x4))/d;
+
+        if (isIntersectionPointOnOneOfTheLines(x1, x2, y1, y2, xi, yi)) {
+            return new Point(xi,yi);
+        } else {
+            return null;
+        }
+    }
+
+    private static boolean isIntersectionPointOnOneOfTheLines(double x1, double x2, double y1, double y2, double xi, double yi) {
+        return ((xi <= x1 && xi >= x2) || (xi >= x1 && xi <= x2)) &&
+            ((yi <= y1 && yi >= y2) || (yi >= y1 && y1 <= y2));
     }
 }

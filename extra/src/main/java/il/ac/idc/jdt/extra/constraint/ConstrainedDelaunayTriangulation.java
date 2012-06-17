@@ -4,17 +4,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import il.ac.idc.jdt.DelaunayTriangulation;
 import il.ac.idc.jdt.Point;
-import il.ac.idc.jdt.Segment;
 import il.ac.idc.jdt.Triangle;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
+import il.ac.idc.jdt.extra.constraint.datamodel.PointsYComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
-import il.ac.idc.jdt.extra.constraint.helper.Converter;
+import il.ac.idc.jdt.extra.constraint.helper.HelperMethods;
 
 import java.awt.geom.Line2D;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.awt.geom.Point2D;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -27,20 +25,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 {
     private Collection<Polygon> polygons = new CopyOnWriteArrayList<Polygon>();
     private Map<Set<Point>, Polygon> mapOfPolygons = Maps.newHashMap();
-
-
-    public ConstrainedDelaunayTriangulation(Point[] ps, Segment[] constraints)
-    {
-        super(ps);
-        //TODO: validate constraints segments are based upon ps points
-    }
-
-    public ConstrainedDelaunayTriangulation(Collection<Point> points, Collection<Segment> constraints)
-    {
-        super(points);
-        //TODO: validate constraints segments are based upon ps points
-    }
-
+    private List<Point> allPoints = Lists.newArrayList();
     /**
      * Returned all the polygons that this is one of their points
      * @param p
@@ -56,10 +41,31 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         return toReturn;
     }
 
+    public void addConstraints(List<Line> lines) {
+        for (Line line : lines) {
+            addConstraint(line);
+        }
+    }
+
     public void addConstraint(Line line) {
+        validateLine(line);
+
+        List<Line> lines = splitLineByPointsOnLine(line);
+        for (Line lineSegment : lines) {
+            dealWithSingleLine(lineSegment);
+        }
+    }
+
+    private void dealWithSingleLine(Line line) {
+        for (Polygon p:polygons) {
+            List<Line> linesFromPolygon = p.getLinesFromPolygon();
+            if (linesFromPolygon.contains(line)) {
+                return;
+            }
+        }
         //stage 1
         List<Polygon> effectedPolygons = findEffectedPolygons(line.getP1());
-        Polygon firstPolygon = getIntersectingPolygons(line, effectedPolygons).iterator().next();
+        Polygon firstPolygon = getFirstPolygonInDirectionOfP2(line, effectedPolygons).iterator().next();
 
         List<Polygon> polygonsInSight = new CopyOnWriteArrayList<Polygon>();
         fillPolygonsInTheRightDirection(line, firstPolygon, polygonsInSight);
@@ -76,7 +82,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         //stage 2
         Polygon side1 = new Polygon();
         Polygon side2 = new Polygon();
-        Converter.dividePolygonByLine(line, merged, side1, side2);
+        HelperMethods.dividePolygonByLine(line, merged, side1, side2);
 
         mapOfPolygons.remove(merged.getKey());
         polygons.remove(merged);
@@ -86,6 +92,93 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         polygons.add(side1) ;
         polygons.add(side2) ;
 
+        //stage 3
+        List<Polygon> newTriangles = Lists.newArrayList();
+        divideToConstrainedPolygons(side1, newTriangles);
+        divideToConstrainedPolygons(side2, newTriangles);
+
+
+        mapOfPolygons.remove(side1.getKey());
+        mapOfPolygons.remove(side1.getKey());
+        polygons.remove(side1);
+        polygons.remove(side2);
+
+        for (Polygon p : newTriangles) {
+            mapOfPolygons.put(p.getKey(), p);
+            polygons.add(p);
+        }
+    }
+
+    /**
+     * In case there are original points in triangulation that are on the requested constraint line split the long
+     * constraint line into segments according to the points on the line.
+     * If not additional point found on the line the return a list with the line itself
+     * @param line
+     */
+    private  List<Line> splitLineByPointsOnLine(Line line) {
+        Point2D p1 = new Point2D.Double();
+        p1.setLocation(line.getP1().getX(), line.getP1().getY());
+
+        Point2D p2 = new Point2D.Double();
+        p2.setLocation(line.getP2().getX(), line.getP2().getY());
+
+        Line2D l = new Line2D.Double();
+        l.setLine(p1, p2);
+
+        List<Point> pointsOnLongSegment = Lists.newArrayList();
+        pointsOnLongSegment.add(line.getP1());
+        pointsOnLongSegment.add(line.getP2());
+        for (Point p:allPoints) {
+            if (!p.equals(line.getP1()) && !p.equals(line.getP2())) {
+                if (l.ptSegDist(p.getX(), p.getY()) == 0.0D) {
+                      pointsOnLongSegment.add(p);
+                }
+            }
+        }
+        List<Line> linesToReturn = Lists.newArrayList();
+        Collections.sort(pointsOnLongSegment, new PointsYComparator());
+        for (int i=0; i< pointsOnLongSegment.size()-1; i++) {
+            linesToReturn.add(new Line(pointsOnLongSegment.get(i), pointsOnLongSegment.get(i+1)));
+        }
+
+        return linesToReturn;
+    }
+
+    private void validateLine(Line line) {
+        if (!allPoints.contains(line.getP1()) || !allPoints.contains(line.getP2())) {
+            throw new IllegalArgumentException("Constraint [" + line + " ] must be a subset of the original points");
+        }
+    }
+
+    private void divideToConstrainedPolygons(Polygon polygonToSplit, List<Polygon> newTriangles) {
+        if (polygonToSplit.isTriangle()) {
+            newTriangles.add(polygonToSplit);
+        } else {
+            List<Polygon> side1AdjacentPolygons = polygonToSplit.getAdjacentPolygons();
+            //try to start from different points
+            boolean foundSplit = false;
+            for (int j = 0; j < side1AdjacentPolygons.size()-1; j++) {
+                if (!foundSplit) {
+                    for (int i = j+2; i < side1AdjacentPolygons.size(); i++) {
+                        Point p1 = polygonToSplit.getPoints().get(j);
+                        Point p2 = polygonToSplit.getPoints().get(i);;
+
+                        Line splitCandidate = new Line(p1, p2);
+                        if (HelperMethods.isLineInsidePolygon(polygonToSplit, splitCandidate, getBoundingBox().maxX())){
+                            Polygon newSide1 = new Polygon();
+                            Polygon newSide2 = new Polygon();
+                            HelperMethods.dividePolygonByLine(splitCandidate, polygonToSplit, newSide1, newSide2);
+                            divideToConstrainedPolygons(newSide1, newTriangles);
+                            divideToConstrainedPolygons(newSide2, newTriangles);
+                            foundSplit = true;
+                            break;
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
     }
 
 
@@ -95,14 +188,14 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
      * @param effectedPolygonsP1
      * @return
      */
-    private List<Polygon> getIntersectingPolygons(Line line, List<Polygon> effectedPolygonsP1) {
+    private List<Polygon> getFirstPolygonInDirectionOfP2(Line line, List<Polygon> effectedPolygonsP1) {
         List<Polygon> polygonInTheRightDirection = Lists.newArrayList();
         for (Polygon polygon : effectedPolygonsP1) {
             if (polygon != null) {
                 List<Point> points = polygon.getPoints();
                 for (int i=0; i< points.size(); i++) {
                     int curr = i;
-                    int next = (i + 1) < points.size()? (i+1) : 0;
+                    int next = (i + 1) < points.size() ? (i+1) : 0;
                     if (!line.isConnectedToLine(points.get(curr), points.get(next))) {
                         if (areLinesIntersect(line, points, curr, next)) {
                             polygonInTheRightDirection.add(polygon);
@@ -126,7 +219,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
      * @param polygonsInSight
      */
     private void fillPolygonsInTheRightDirection(Line line, Polygon currentPolygon, List<Polygon> polygonsInSight) {
-        List<Polygon> intersectingPolygons = getIntersectingPolygons(line, currentPolygon.getAdjacentPolygons());
+        List<Polygon> intersectingPolygons = getFirstPolygonInDirectionOfP2(line, currentPolygon.getAdjacentPolygons());
         for (Polygon intersectingPolygon : intersectingPolygons) {
             if (!polygonsInSight.contains(intersectingPolygon)) {
                 polygonsInSight.add(intersectingPolygon);
@@ -151,17 +244,18 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
     }
 
     private Polygon mergeTwoPolygonsLogic(Polygon polygonToMerge, Polygon rootToMergeInto) {
-        Polygon polygon = Converter.mergeTwoPolygons(polygonToMerge, rootToMergeInto);
+        Polygon polygon = HelperMethods.mergeTwoPolygons(polygonToMerge, rootToMergeInto);
         return polygon;
     }
 
     public ConstrainedDelaunayTriangulation(Point[] ps) {
-        super(ps);
+        this(Arrays.asList(ps));
     }
     public ConstrainedDelaunayTriangulation(Collection<Point> points) {
         super(points);
+        allPoints.addAll(points);
         List<Triangle> triangulation = getTriangulation();
-        mapOfPolygons = Converter.fromTrianglesToPolygons(triangulation);
+        mapOfPolygons = HelperMethods.fromTrianglesToPolygons(triangulation);
         polygons = new CopyOnWriteArrayList<Polygon>(mapOfPolygons.values());
     }
 

@@ -305,20 +305,11 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
 
         for (Polygon polygon : triangulation.getPolygons())
         {
-            List<Point> points1 = polygon.getPoints();
-            for (int i = 0; i < points1.size(); i++) {
-                if (i + 1 < points1.size())
-                {
-                    Line ab = new Line(points1.get(i), points1.get(i + 1));
-                    linesToPaint.add(ab);
-                }
-            }
-
-            Line ab = new Line(points1.get(0), points1.get(points1.size() - 1));
-            linesToPaint.add(ab);
+            linesToPaint.addAll(polygon.getLinesFromPolygon());
         }
         return linesToPaint;
     }
+
 
     @Subscribe
     public void onSelectedSegmentsRemoved(SelectedSegmentsRemovedEvent event)

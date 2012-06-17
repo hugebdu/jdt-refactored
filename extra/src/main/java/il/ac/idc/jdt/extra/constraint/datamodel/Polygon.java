@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import il.ac.idc.jdt.Point;
 
+import java.awt.geom.Line2D;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -195,15 +196,19 @@ public class Polygon {
         polygonToIndexInList.remove(removedPolygon);
     }
 
-    public void removeByPoint(Point p) {
-        points.remove(p);
-        pointToIndexInList.remove(p);
+    public boolean doesLineCrossPolygon(Line line) {
+        List<Line> linesFromPolygon = getLinesFromPolygon();
+        for (Line lineFromPolygon : linesFromPolygon) {
+            if (!line.isConnectedToLine(lineFromPolygon.getP1(), lineFromPolygon.getP2())) {
+                if (Line2D.linesIntersect(line.getP1().getX(), line.getP1().getY(), line.getP2().getX(), line.getP2().getY(),
+                        lineFromPolygon.getP1().getX(), lineFromPolygon.getP1().getY(), lineFromPolygon.getP2().getX(), lineFromPolygon.getP2().getY())) {
+                    return true;
+                }
+            }
+        }
 
-        int index = points.indexOf(p);
-        Polygon removedPolygon = adjacentPolygons.remove(index);
-        polygonToIndexInList.remove(removedPolygon);
+        return false;
     }
-
     /**
      * Returns the index of the point if the list
      * @param p
@@ -255,6 +260,22 @@ public class Polygon {
             pointToIndexInList.put(points.get(i), i);
             polygonToIndexInList.put(adjacentPolygons.get(i), i);
         }
+    }
+
+    public List<Line> getLinesFromPolygon() {
+        List<Line> linesToPaint = Lists.newArrayList();
+        List<Point> points = getPoints();
+        for (int i = 0; i < points.size(); i++) {
+            if (i + 1 < points.size())
+            {
+                Line ab = new Line(points.get(i), points.get(i + 1));
+                linesToPaint.add(ab);
+            }
+        }
+
+        Line line = new Line(points.get(0), points.get(points.size() - 1));
+        linesToPaint.add(line);
+        return linesToPaint;
     }
 
     public class PointsPolygons {
