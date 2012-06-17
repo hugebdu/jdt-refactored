@@ -229,6 +229,9 @@ public class Main extends JFrame
     {
         Main main = new Main();
         main.doShow();
+
+        if (args.length > 0)
+            main.tryLoadingFile(new File(args[0]));
     }
 
     class TriangulationWorker extends SwingWorker<ConstrainedDelaunayTriangulation, Object>
