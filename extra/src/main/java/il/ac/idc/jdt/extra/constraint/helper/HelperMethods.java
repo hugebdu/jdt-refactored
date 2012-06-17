@@ -8,9 +8,12 @@ import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 import il.ac.idc.jdt.extra.constraint.datamodel.PointsYComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.Triangle;
+import org.javatuples.Pair;
 
 import java.awt.geom.Line2D;
 import java.util.*;
+
+import static com.google.common.collect.Lists.newLinkedList;
 
 /**
  * Created with IntelliJ IDEA.
@@ -26,12 +29,8 @@ public class HelperMethods {
      * @return
      */
     public static Map<Set<Point>, Polygon> fromTrianglesToPolygons(List<Triangle> triangles) {
-        List<Polygon> polygons = Lists.newArrayList();
-        Map<Set<Point>, Polygon> mapOfPolygons = Maps.newHashMap();
-
         Triangle someTriangle = triangles.iterator().next();
-        populatePolygons(someTriangle, polygons, mapOfPolygons);
-        return mapOfPolygons;
+        return populatePolygons(someTriangle);
     }
 
 
@@ -141,32 +140,40 @@ public class HelperMethods {
         }
     }
 
-    public static Polygon populatePolygons(Triangle triangle, List<Polygon> polygons, Map<Set<Point>, Polygon> mapOfPolygons) {
-        if (!triangle.isHalfplane()) {
-            if (triangle == null) {
-                return null;
+    public static Map<Set<Point>, Polygon>  populatePolygons(Triangle triangle) {
+        List<Polygon> polygons = Lists.newArrayList();
+        Map<Set<Point>, Polygon> mapOfPolygons = Maps.newHashMap();
+        Queue<Pair<Triangle, Pair<Polygon, Integer>>> queue = newLinkedList();
+        queue.add(Pair.<Triangle, Pair<Polygon, Integer>>with(triangle, null));
+        while (!queue.isEmpty()) {
+            Pair<Triangle, Pair<Polygon, Integer>> pair = queue.poll();
+            triangle = pair.getValue0();
+            Polygon polygon = null;
+            if (!triangle.isHalfplane()) {
+                HashSet<Point> keyOfCurrentTriangle = Sets.newHashSet(triangle.getA(), triangle.getB(), triangle.getC());
+                if (isNewPolygon(mapOfPolygons, keyOfCurrentTriangle)) {
+                    polygon = new Polygon();
+                    polygon.addPoints(triangle.getA(), triangle.getB(), triangle.getC());
+                    polygons.add(polygon);
+                    mapOfPolygons.put(keyOfCurrentTriangle, polygon);
+
+                    queue.add(Pair.<Triangle, Pair<Polygon, Integer>>with(triangle.getAbTriangle(), Pair.<Polygon, Integer>with(polygon, 0)));
+                    queue.add(Pair.<Triangle, Pair<Polygon, Integer>>with(triangle.getBcTriangle(), Pair.<Polygon, Integer>with(polygon, 1)));
+                    queue.add(Pair.<Triangle, Pair<Polygon, Integer>>with(triangle.getCaTriangle(), Pair.<Polygon, Integer>with(polygon, 2)));
+                } else {
+                    polygon = mapOfPolygons.get(keyOfCurrentTriangle);
+                }
             }
 
-            HashSet<Point> keyOfCurrentTriangle = Sets.newHashSet(triangle.getA(), triangle.getB(), triangle.getC());
-
-            if (isNewPolygon(mapOfPolygons, keyOfCurrentTriangle)) {
-                Polygon polygon = new Polygon();
-                polygon.addPoints(triangle.getA(), triangle.getB(), triangle.getC());
-                polygons.add(polygon);
-                mapOfPolygons.put(keyOfCurrentTriangle, polygon);
-
-                polygon.addPolygon(populatePolygons(triangle.getAbTriangle(), polygons, mapOfPolygons), 0);
-                polygon.addPolygon(populatePolygons(triangle.getBcTriangle(), polygons, mapOfPolygons), 1);
-                polygon.addPolygon(populatePolygons(triangle.getCaTriangle(), polygons, mapOfPolygons), 2);
-                return polygon;
-
-            } else {
-                Polygon fullPolygon = mapOfPolygons.get(keyOfCurrentTriangle);
-                return fullPolygon;
+            Pair<Polygon, Integer> callerPolygonInfoPair = pair.getValue1();
+            if (callerPolygonInfoPair != null) {
+                Polygon callerPolygon = callerPolygonInfoPair.getValue0();
+                Integer targetIndex = callerPolygonInfoPair.getValue1();
+                callerPolygon.addPolygon(polygon, targetIndex);
             }
         }
 
-        return null;
+        return mapOfPolygons;
     }
 
     private static boolean isNewPolygon(Map<Set<Point>, Polygon> mapOfPolygons, HashSet<Point> keyOfCurrentTriangle) {

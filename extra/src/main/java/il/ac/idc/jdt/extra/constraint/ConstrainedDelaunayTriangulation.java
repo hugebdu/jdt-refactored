@@ -161,7 +161,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
                 if (!foundSplit) {
                     for (int i = j+2; i < side1AdjacentPolygons.size(); i++) {
                         Point p1 = polygonToSplit.getPoints().get(j);
-                        Point p2 = polygonToSplit.getPoints().get(i);;
+                        Point p2 = polygonToSplit.getPoints().get(i);
 
                         Line splitCandidate = new Line(p1, p2);
                         if (HelperMethods.isLineInsidePolygon(polygonToSplit, splitCandidate, getBoundingBox().maxX())){
