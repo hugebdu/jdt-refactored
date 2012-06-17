@@ -29,7 +29,7 @@ import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Sets.newHashSet;
-import static il.ac.idc.jdt.gui2.Main.TriangulationDataSource;
+import static il.ac.idc.jdt.gui2.Main.*;
 import static il.ac.idc.jdt.gui2.SegmentsPanel.*;
 import static il.ac.idc.jdt.gui2.StatusPanel.MouseOverPointEvent;
 import static java.util.Arrays.asList;
@@ -91,6 +91,7 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     private double yScaleFactor;
     private double xScaledPadding;
     private double yScaledPadding;
+    private boolean mouseManagerSuppressed = false;
 
     public CanvasPanel(EventBus eventBus)
     {
@@ -375,6 +376,20 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     }
 
     @Subscribe
+    public void onTriangulationStarted(TriangulationStartedEvent e)
+    {
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        mouseManagerSuppressed = true;
+    }
+
+    @Subscribe
+    public void onTriangulationEnded(TriangulationEndedEvent e)
+    {
+        setCursor(Cursor.getDefaultCursor());
+        mouseManagerSuppressed = false;
+    }
+
+    @Subscribe
     public void onClear(ClearEvent event)
     {
         points = newLinkedList();
@@ -485,6 +500,9 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                 @Override
                 public void mouseMoved(MouseEvent e)
                 {
+                    if (isSuppressed())
+                        return;
+
                     Point point = selectionGrid.getPointOrNullAt(e.getX(), e.getY());
 
                     if (point != null)
@@ -508,6 +526,11 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                     }
                 }
             };
+        }
+
+        private boolean isSuppressed()
+        {
+            return mouseManagerSuppressed;
         }
 
         public void reset()
