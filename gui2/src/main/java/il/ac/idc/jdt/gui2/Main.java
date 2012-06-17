@@ -1,11 +1,14 @@
 package il.ac.idc.jdt.gui2;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.eventbus.EventBus;
 import il.ac.idc.jdt.IOParsers;
 import il.ac.idc.jdt.Point;
+import il.ac.idc.jdt.extra.IOUtils;
 import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,15 +21,24 @@ import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.EventObject;
 import java.util.List;
+import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Iterables.concat;
+import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static il.ac.idc.jdt.extra.IOUtils.storeSegments;
 import static il.ac.idc.jdt.gui2.CanvasPanel.ClearEvent;
 import static il.ac.idc.jdt.gui2.CanvasPanel.LoadPointsEvent;
-import static il.ac.idc.jdt.gui2.SegmentsPanel.TriangulationCalculatedEvent;
-import static il.ac.idc.jdt.gui2.SegmentsPanel.TriangulationResetEvent;
+import static il.ac.idc.jdt.gui2.SegmentsPanel.*;
 import static java.lang.String.format;
+import static javax.swing.JOptionPane.showMessageDialog;
+import static org.apache.commons.lang3.StringUtils.endsWithIgnoreCase;
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,14 +48,22 @@ import static java.lang.String.format;
 public class Main extends JFrame
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final Function<Line, Iterable<Point>> toPoints = new Function<Line, Iterable<Point>>()
+    {
+        @Override
+        public Iterable<Point> apply(Line segment)
+        {
+            return newArrayList(segment.points());
+        }
+    };
 
     CanvasPanel canvasPanel;
     StatusPanel statusPanel;
+
     SegmentsPanel segmentsPanel;
-    
     final EventBus eventBus = new EventBus();
     final MouseAdapter mouseAdapter = new MouseAdapter() {};
-    
+
     Main()
     {
         initFrame();
@@ -81,7 +101,10 @@ public class Main extends JFrame
         // menu
         setJMenuBar(menuBar(
                 menu("File",
-                        menuItem(loadFileAction()),
+                        menuItem(loadPointsFileAction()),
+                        menuItem(loadSegmentsFileAction()),
+                        menuItem(saveSegmentsFileAction()),
+                        new JSeparator(),
                         menuItem(clearAction())),
                 menu("Triangulation",
                         menuItem(runTriangulationAction()),
@@ -101,6 +124,150 @@ public class Main extends JFrame
         add(statusPanel, BorderLayout.PAGE_END);
 
         pack();
+    }
+    
+    private JFileChooser createFileChooser(String filterDescription, String extensionFilter)
+    {
+        JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+        FileNameExtensionFilter fileFilter = new FileNameExtensionFilter(filterDescription, extensionFilter);
+        fileChooser.setFileFilter(fileFilter);
+        return fileChooser;        
+    }
+
+    private Action saveSegmentsFileAction()
+    {
+        return new AbstractAction("Save segments...")
+        {
+            final JFileChooser fileChooser = createFileChooser("TSEG files (*.tseg)", "tseg");
+            
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                if (hasSegments())
+                {
+                    if (showAndApproved())
+                        tryStoreSegments(ensureFileExtension(fileChooser.getSelectedFile()));
+                }
+                else
+                {
+                    informNothingToSave();
+                }
+            }
+
+            private File ensureFileExtension(File selectedFile)
+            {
+                String fileName = selectedFile.getAbsolutePath();
+
+                String extension = ".tseg";
+
+                if (!endsWithIgnoreCase(fileName, extension))
+                    selectedFile = new File(
+                            StringUtils.indexOf(fileName, ".") > -1 ?
+                            StringUtils.left(fileName, StringUtils.lastIndexOf(fileName, ".")) + extension :
+                                    fileName + extension);
+
+                return selectedFile;
+            }
+
+            private boolean showAndApproved()
+            {
+                return fileChooser.showSaveDialog(Main.this) == JFileChooser.APPROVE_OPTION;
+            }
+
+            private void informNothingToSave()
+            {
+                showMessageDialog(Main.this,
+                        "No segments found.",
+                        "Save segments",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+
+            private boolean hasSegments()
+            {
+                return !Iterables.isEmpty(getTriangulationDataSource().getSegments());
+            }
+        };
+    }
+
+    private void tryStoreSegments(File selectedFile)
+    {
+        try
+        {
+            storeSegments(selectedFile, getTriangulationDataSource().getSegments());
+            showMessageDialog(Main.this, "Segments file saved successfully.", "Segments save", JOptionPane.INFORMATION_MESSAGE);
+        }
+        catch (IOException e)
+        {
+            final String message = "Failed to save segments to " + selectedFile.getAbsolutePath();
+            showMessageDialog(Main.this, message, "Segments save", JOptionPane.ERROR_MESSAGE);
+            LOGGER.warn(message, e);
+        }
+    }
+
+    private Action loadSegmentsFileAction()
+    {
+        return new AbstractAction("Load segments...")
+        {
+            final JFileChooser fileChooser = createFileChooser("TSEG files (*.tseg)", "tseg");
+            
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                if (hasPoints())
+                {
+                    if (showAndFileChosen())
+                        tryLoadingSegmentsFile(fileChooser.getSelectedFile());
+                }
+                else
+                {
+                    showMessageDialog(
+                            Main.this, 
+                            "Cannot load segments. Load points first.", 
+                            "Error loading segments", 
+                            JOptionPane.WARNING_MESSAGE);
+                }
+            }
+
+            private boolean hasPoints()
+            {
+                return !Iterables.isEmpty(getTriangulationDataSource().getPoints());
+            }
+
+            private boolean showAndFileChosen()
+            {
+                int result = fileChooser.showOpenDialog(Main.this);
+                return result == JFileChooser.APPROVE_OPTION;
+            }
+        };
+    }
+
+    private void tryLoadingSegmentsFile(File selectedFile)
+    {
+        try
+        {
+            Collection<Line> segments = IOUtils.loadSegments(selectedFile);
+            validateSegmentsBasedOnPoints(segments);
+
+            for (Line line : segments)
+                eventBus.post(new SegmentAddedEvent(this, line));
+        }
+        catch (Exception e)
+        {
+            String message = "Failed to load segments from file";
+            showMessageDialog(
+                    this,
+                    message, 
+                    "Error loading segments", 
+                    JOptionPane.ERROR_MESSAGE);
+            LOGGER.warn(message, e);
+        }
+    }
+
+    private void validateSegmentsBasedOnPoints(Collection<Line> segments)
+    {
+        Set<Point> points = newHashSet(getTriangulationDataSource().getPoints());
+        checkArgument(points.containsAll(newHashSet(concat(transform(segments, toPoints)))),
+                "Segments have to be based on provided points");
     }
 
     private Action resetTriangulationAction()
@@ -168,10 +335,10 @@ public class Main extends JFrame
         return menuBar;
     }
     
-    private JMenu menu(String text, JMenuItem ... items)
+    private JMenu menu(String text, JComponent ... items)
     {
         JMenu menu = new JMenu(text);
-        for (JMenuItem item : items)
+        for (JComponent item : items)
             menu.add(item);
         return menu;
     }
@@ -181,11 +348,11 @@ public class Main extends JFrame
         return new JMenuItem(action);
     }
 
-    private Action loadFileAction()
+    private Action loadPointsFileAction()
     {
-        return new AbstractAction("Load...")
+        return new AbstractAction("Load points...")
         {
-            final JFileChooser fileChooser = createFileChooser();
+            final JFileChooser fileChooser = createFileChooser("TSIN files (*.tsin)", "tsin");
 
             @Override
             public void actionPerformed(ActionEvent e)
@@ -194,20 +361,13 @@ public class Main extends JFrame
                 if (result == JFileChooser.APPROVE_OPTION)
                 {
                     eventBus.post(new ClearEvent(Main.this));
-                    tryLoadingFile(fileChooser.getSelectedFile());
+                    tryLoadingPointsFile(fileChooser.getSelectedFile());
                 }
-            }
-
-            private JFileChooser createFileChooser()
-            {
-                JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
-                fileChooser.setFileFilter(new FileNameExtensionFilter("TSIN files (*.tsin)", "tsin"));
-                return fileChooser;
             }
         }; 
     }
 
-    private void tryLoadingFile(File file)
+    private void tryLoadingPointsFile(File file)
     {
         try
         {
@@ -218,7 +378,7 @@ public class Main extends JFrame
         {
             e.printStackTrace();
             String message = format("Failed to load points from file %s: %s", file.getAbsolutePath(), e.getMessage());
-            JOptionPane.showMessageDialog(this,
+            showMessageDialog(this,
                     message,
                     "Error loading TSIN file",
                     JOptionPane.ERROR_MESSAGE);
@@ -232,7 +392,7 @@ public class Main extends JFrame
         main.doShow();
 
         if (args.length > 0)
-            main.tryLoadingFile(new File(args[0]));
+            main.tryLoadingPointsFile(new File(args[0]));
     }
 
     class TriangulationWorker extends SwingWorker<ConstrainedDelaunayTriangulation, Object>
@@ -269,7 +429,7 @@ public class Main extends JFrame
             {
                 e.printStackTrace();
                 String message = "Failed running constrained triangulation";
-                JOptionPane.showMessageDialog(Main.this,
+                showMessageDialog(Main.this,
                         message,
                         "Error running triangulation",
                         JOptionPane.ERROR_MESSAGE);

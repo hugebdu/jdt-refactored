@@ -46,10 +46,10 @@ public class Line {
 
         Line line = (Line) o;
 
-        return Arrays.equals(ordered(), line.ordered());
+        return Arrays.equals(points(), line.points());
     }
 
-    Point[] ordered()
+    public Point[] points()
     {
         Point[] ordered = new Point[2];
 
@@ -72,7 +72,7 @@ public class Line {
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(ordered());
+        return Objects.hashCode(points());
     }
 
 
