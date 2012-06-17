@@ -14,6 +14,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.util.List;
@@ -51,7 +52,20 @@ public class Main extends JFrame
 
     private void doShow()
     {
+        centerOnScreen();
         setVisible(true);
+    }
+
+    private void centerOnScreen()
+    {
+        int widthWindow = getWidth();
+        int heightWindow = getHeight();
+
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        int X = (screen.width / 2) - (widthWindow / 2); // Center horizontally.
+        int Y = (screen.height / 2) - (heightWindow / 2); // Center vertically.
+
+        setBounds(X, Y, widthWindow, heightWindow);
     }
 
     private void initFrame()

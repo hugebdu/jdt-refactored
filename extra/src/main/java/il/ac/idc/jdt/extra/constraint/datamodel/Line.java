@@ -7,6 +7,7 @@ import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
 
 /**
  * Created with IntelliJ IDEA.
@@ -78,10 +79,7 @@ public class Line {
     @Override
     public String toString()
     {
-        return "Line{" +
-                "p1=" + p1 +
-                ", p2=" + p2 +
-                '}';
+        return format("[%s:%s - %s:%s]", p1.getX(), p1.getY(), p2.getX(), p2.getY());
     }
 
     public boolean isConnectedToLine(Point p11, Point p22) {
