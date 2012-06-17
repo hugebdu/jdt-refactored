@@ -396,7 +396,8 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
         segments = newHashSet();
         triangulation = null;
         mouseManager.reset();
-        
+        selectionGrid.reset();
+
         repaint();
     }
 
@@ -588,6 +589,11 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                         transformedPoint.y
                 );
             }
+        }
+
+        public void reset()
+        {
+            grid = new WeightedPointHolder[DIMENSION.width][DIMENSION.height];
         }
 
         private void placeMarks(Point point, int x, int y)
