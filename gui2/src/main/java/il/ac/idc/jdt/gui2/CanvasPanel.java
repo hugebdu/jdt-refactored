@@ -7,6 +7,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Floats;
 import il.ac.idc.jdt.Point;
 import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
@@ -28,7 +29,7 @@ import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Sets.newHashSet;
-import static il.ac.idc.jdt.gui2.Main.TriangulationDataSource;
+import static il.ac.idc.jdt.gui2.Main.*;
 import static il.ac.idc.jdt.gui2.SegmentsPanel.*;
 import static il.ac.idc.jdt.gui2.StatusPanel.MouseOverPointEvent;
 import static java.util.Arrays.asList;
@@ -78,7 +79,10 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     SelectionGrid selectionGrid = new SelectionGrid();
 
     Collection<Point> points;
+    
     Set<Line> segments;
+    Set<Line> selectedSegments;
+    
     ConstrainedDelaunayTriangulation triangulation;
 
     private final MouseManager mouseManager;
@@ -87,6 +91,7 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     private double yScaleFactor;
     private double xScaledPadding;
     private double yScaledPadding;
+    private boolean mouseManagerSuppressed = false;
 
     public CanvasPanel(EventBus eventBus)
     {
@@ -123,13 +128,26 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     {
         if (segments != null)
         {
-            g.setColor(Color.red);
-            for (Line line : segments)
+            final Stroke previousStroke = g.getStroke();
+
+            try
             {
-                Line2D line2d = toLine2d(line);
-                g.draw(line2d);
+                g.setColor(Color.red);
+                for (Line line : segments)
+                {
+                    float strokeWidth = 3f / Floats.max((float) xScaleFactor, (float) yScaleFactor);
+                    g.setStroke(new BasicStroke(selectedSegments.contains(line) ? strokeWidth : 1f));
+                    Line2D line2d = toLine2d(line);
+                    g.draw(line2d);
+                }
+            }
+            finally
+            {
+                g.setStroke(previousStroke);
             }
         }
+
+
     }
 
     private void paintLines(Graphics2D g)
@@ -301,7 +319,18 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
         if (segments == null)
             segments = newHashSet();
         
+        if (selectedSegments == null)
+            selectedSegments = newHashSet();
+        
         segments.add(event.line);
+        
+    }
+    
+    @Subscribe
+    public void onSegmentSelection(SegmentSelectionEvent event)
+    {
+        selectedSegments = newHashSet(event.segments);
+        repaint();
     }
 
     @Subscribe
@@ -334,6 +363,7 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     public void onSelectedSegmentsRemoved(SelectedSegmentsRemovedEvent event)
     {
         segments.removeAll(event.removedSegments);
+        selectedSegments.removeAll(event.removedSegments);
         repaint();
     }
 
@@ -341,7 +371,22 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
     public void onAllSegmentsRemoved(AllSegmentsRemovedEvent event)
     {
         segments = newHashSet();
+        selectedSegments = newHashSet();
         repaint();
+    }
+
+    @Subscribe
+    public void onTriangulationStarted(TriangulationStartedEvent e)
+    {
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        mouseManagerSuppressed = true;
+    }
+
+    @Subscribe
+    public void onTriangulationEnded(TriangulationEndedEvent e)
+    {
+        setCursor(Cursor.getDefaultCursor());
+        mouseManagerSuppressed = false;
     }
 
     @Subscribe
@@ -351,7 +396,8 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
         segments = newHashSet();
         triangulation = null;
         mouseManager.reset();
-        
+        selectionGrid.reset();
+
         repaint();
     }
 
@@ -455,6 +501,9 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                 @Override
                 public void mouseMoved(MouseEvent e)
                 {
+                    if (isSuppressed())
+                        return;
+
                     Point point = selectionGrid.getPointOrNullAt(e.getX(), e.getY());
 
                     if (point != null)
@@ -478,6 +527,11 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                     }
                 }
             };
+        }
+
+        private boolean isSuppressed()
+        {
+            return mouseManagerSuppressed;
         }
 
         public void reset()
@@ -535,6 +589,11 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                         transformedPoint.y
                 );
             }
+        }
+
+        public void reset()
+        {
+            grid = new WeightedPointHolder[DIMENSION.width][DIMENSION.height];
         }
 
         private void placeMarks(Point point, int x, int y)
@@ -599,6 +658,17 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                 this.weight = weight;
                 this.point = point;
             }
+        }
+    }
+    
+    public static class SegmentSelectionEvent extends EventObject
+    {
+        final Set<Line> segments;
+
+        public SegmentSelectionEvent(Object source, Set<Line> segments)
+        {
+            super(source);
+            this.segments = segments;
         }
     }
 }

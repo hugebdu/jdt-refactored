@@ -14,8 +14,11 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
 import java.io.File;
+import java.util.EventObject;
 import java.util.List;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -39,7 +42,8 @@ public class Main extends JFrame
     SegmentsPanel segmentsPanel;
     
     final EventBus eventBus = new EventBus();
-
+    final MouseAdapter mouseAdapter = new MouseAdapter() {};
+    
     Main()
     {
         initFrame();
@@ -51,7 +55,20 @@ public class Main extends JFrame
 
     private void doShow()
     {
+        centerOnScreen();
         setVisible(true);
+    }
+
+    private void centerOnScreen()
+    {
+        int widthWindow = getWidth();
+        int heightWindow = getHeight();
+
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        int X = (screen.width / 2) - (widthWindow / 2); // Center horizontally.
+        int Y = (screen.height / 2) - (heightWindow / 2); // Center vertically.
+
+        setBounds(X, Y, widthWindow, heightWindow);
     }
 
     private void initFrame()
@@ -108,6 +125,8 @@ public class Main extends JFrame
                 TriangulationDataSource dataSource = getTriangulationDataSource();
                 if (!isEmpty())
                 {
+                    eventBus.post(new TriangulationStartedEvent(Main.this));
+                    Main.this.addMouseListener(mouseAdapter);
                     Main.this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                     new TriangulationWorker(dataSource).execute();
                 }
@@ -211,6 +230,9 @@ public class Main extends JFrame
     {
         Main main = new Main();
         main.doShow();
+
+        if (args.length > 0)
+            main.tryLoadingFile(new File(args[0]));
     }
 
     class TriangulationWorker extends SwingWorker<ConstrainedDelaunayTriangulation, Object>
@@ -253,7 +275,9 @@ public class Main extends JFrame
             }
             finally
             {
-                setCursor(Cursor.getDefaultCursor());
+                eventBus.post(new TriangulationEndedEvent(Main.this));
+                Main.this.removeMouseListener(mouseAdapter);
+                Main.this.setCursor(Cursor.getDefaultCursor());
             }
         }
     }
@@ -262,5 +286,21 @@ public class Main extends JFrame
     {
         Iterable<Point> getPoints();
         Iterable<Line> getSegments();
+    }
+    
+    public static class TriangulationStartedEvent extends EventObject
+    {
+        public TriangulationStartedEvent(Object source)
+        {
+            super(source);
+        }
+    }
+    
+    public static class TriangulationEndedEvent extends EventObject
+    {
+        public TriangulationEndedEvent(Object source)
+        {
+            super(source);
+        }
     }
 }

@@ -7,6 +7,8 @@ import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 
 import javax.swing.*;
 import javax.swing.border.BevelBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -17,6 +19,7 @@ import java.util.Set;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static il.ac.idc.jdt.gui2.CanvasPanel.ClearEvent;
+import static il.ac.idc.jdt.gui2.CanvasPanel.SegmentSelectionEvent;
 
 /**
  * Created by IntelliJ IDEA.
@@ -40,7 +43,17 @@ public class SegmentsPanel extends JPanel
         setPreferredSize(PREFERRED_SIZE);
         
         add(new JLabel("Segments:"));
-        list = new JList(model);
+        list = new JList(model)
+        {
+            @Override
+            public String getToolTipText(MouseEvent e)
+            {
+                int index = locationToIndex(e.getPoint());
+                Object item = getModel().getElementAt(index);
+                return item.toString();
+            }
+        };
+
         list.setBorder(new BevelBorder(BevelBorder.LOWERED));
         list.setPreferredSize(new Dimension(230, 200));
         list.addMouseListener(new MouseAdapter()
@@ -63,6 +76,18 @@ public class SegmentsPanel extends JPanel
             {
                 JPopupMenu menu = popupMenu();
                 menu.show(e.getComponent(), e.getX(), e.getY());
+            }
+        });
+        
+        list.addListSelectionListener(new ListSelectionListener()
+        {
+            @SuppressWarnings("SuspiciousToArrayCall")
+            @Override
+            public void valueChanged(ListSelectionEvent e)
+            {
+                Object[] selectedValues = list.getSelectedValues();
+                Line[] selectedLines = newArrayList(selectedValues).toArray(new Line[selectedValues.length]);
+                SegmentsPanel.this.eventBus.post(new SegmentSelectionEvent(SegmentsPanel.this, newHashSet(selectedLines)));
             }
         });
 
@@ -186,7 +211,7 @@ public class SegmentsPanel extends JPanel
             this.line = line;
         }
     }
-
+    
     public static class TriangulationResetEvent extends EventObject
     {
         public TriangulationResetEvent(Object source)
