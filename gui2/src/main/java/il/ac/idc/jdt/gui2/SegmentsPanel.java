@@ -223,11 +223,13 @@ public class SegmentsPanel extends JPanel
     public static class TriangulationCalculatedEvent extends EventObject
     {
         final ConstrainedDelaunayTriangulation triangulation;
+        final long runtimeInMs;
 
-        public TriangulationCalculatedEvent(Object source, ConstrainedDelaunayTriangulation triangulation)
+        public TriangulationCalculatedEvent(Object source, ConstrainedDelaunayTriangulation triangulation, long runtimeInMs)
         {
             super(source);
             this.triangulation = triangulation;
+            this.runtimeInMs = runtimeInMs;
         }
     }
 }

@@ -238,6 +238,7 @@ public class Main extends JFrame
     class TriangulationWorker extends SwingWorker<ConstrainedDelaunayTriangulation, Object>
     {
         final TriangulationDataSource dataSource;
+        long start;
 
         TriangulationWorker(TriangulationDataSource dataSource)
         {
@@ -247,6 +248,7 @@ public class Main extends JFrame
         @Override
         protected ConstrainedDelaunayTriangulation doInBackground() throws Exception
         {
+            start = System.currentTimeMillis();
             ConstrainedDelaunayTriangulation triangulation = new ConstrainedDelaunayTriangulation(
                     newHashSet(dataSource.getPoints()));
 
@@ -261,7 +263,7 @@ public class Main extends JFrame
         {
             try
             {
-                eventBus.post(new TriangulationCalculatedEvent(Main.this, get()));
+                eventBus.post(new TriangulationCalculatedEvent(Main.this, get(), System.currentTimeMillis() - start));
             }
             catch (Exception e)
             {
