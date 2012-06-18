@@ -135,8 +135,8 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
                 g.setColor(Color.red);
                 for (Line line : segments)
                 {
-                    float strokeWidth = 3f / Floats.max((float) xScaleFactor, (float) yScaleFactor);
-                    g.setStroke(new BasicStroke(selectedSegments.contains(line) ? strokeWidth : 1f));
+                    float strokeWidth = (selectedSegments.contains(line) ? 3f : 1f) / Floats.max((float) xScaleFactor, (float) yScaleFactor);
+                    g.setStroke(new BasicStroke(strokeWidth));
                     Line2D line2d = toLine2d(line);
                     g.draw(line2d);
                 }
@@ -156,13 +156,35 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
         
         if (!lines.isEmpty())
         {
-            g.setColor(Color.lightGray);
-            for (Line line : lines)
+            final Stroke previousStroke = adjustStrokeReturnPrevious(g);
+            try
             {
-                Line2D line2d = toLine2d(line);
-                g.draw(line2d);
+
+                g.setColor(Color.lightGray);
+                for (Line line : lines)
+                {
+                    Line2D line2d = toLine2d(line);
+                    g.draw(line2d);
+                }
+            }
+            finally
+            {
+                g.setStroke(previousStroke);
             }
         }
+    }
+
+    private Stroke adjustStrokeReturnPrevious(Graphics2D g)
+    {
+        final Stroke prevStroke = g.getStroke();
+
+        if (xScaleFactor > 0 || yScaleFactor > 0)
+        {
+            float strokeWidth = 1f / Floats.max((float) xScaleFactor, (float) yScaleFactor);
+            g.setStroke(new BasicStroke(strokeWidth));
+        }
+
+        return prevStroke;
     }
 
     private Collection<Line> extractLinesFromTriangulation()
@@ -205,12 +227,23 @@ public class CanvasPanel extends JPanel implements TriangulationDataSource
 
     private void paintPoint(Point point, Graphics2D g, AffineTransform savedTransform)
     {
-        Point2i intPoint = toIntPoint(point);
+        final Stroke prevStroke = adjustStrokeReturnPrevious(g);
 
-        g.drawLine(intPoint.x, intPoint.y, intPoint.x, intPoint.y);
+        try
+        {
+            Point2i intPoint = toIntPoint(point);
 
-        if (point == mouseManager.getSelected())
-            paintSelectedPoint(point, g, savedTransform);
+            g.drawLine(intPoint.x, intPoint.y, intPoint.x, intPoint.y);
+
+            g.setStroke(prevStroke);
+
+            if (point == mouseManager.getSelected())
+                paintSelectedPoint(point, g, savedTransform);
+        }
+        finally
+        {
+            g.setStroke(prevStroke);
+        }
     }
 
     private void paintSelectedPoint(Point point, Graphics2D g, AffineTransform savedTransform)
