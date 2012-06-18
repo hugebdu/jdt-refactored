@@ -60,6 +60,7 @@ public class Line {
         else if (p1.getX() == p2.getX())
         {
             ordered[0] = p1.getY() < p2.getY() ? p1 : p2;
+            ordered[1] = p1.getY() < p2.getY() ? p2 : p1;
         }
         else
         {
