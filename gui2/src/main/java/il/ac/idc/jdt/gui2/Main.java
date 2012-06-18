@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BorderLayout;
@@ -57,9 +58,18 @@ public class Main extends JFrame
         }
     };
 
-    CanvasPanel canvasPanel;
-    StatusPanel statusPanel;
+    private static final Function<Point, Point> toZetLessPoints = new Function<Point, Point>()
+    {
+        @Override
+        public Point apply(Point input)
+        {
+            return new Point(input.getX(), input.getY());
+        }
+    };
 
+    CanvasPanel canvasPanel;
+
+    StatusPanel statusPanel;
     SegmentsPanel segmentsPanel;
     final EventBus eventBus = new EventBus();
     final MouseAdapter mouseAdapter = new MouseAdapter() {};
@@ -250,6 +260,8 @@ public class Main extends JFrame
 
             for (Line line : segments)
                 eventBus.post(new SegmentAddedEvent(this, line));
+
+            canvasPanel.repaint();
         }
         catch (Exception e)
         {
@@ -265,7 +277,7 @@ public class Main extends JFrame
 
     private void validateSegmentsBasedOnPoints(Collection<Line> segments)
     {
-        Set<Point> points = newHashSet(getTriangulationDataSource().getPoints());
+        Set<Point> points = newHashSet(transform(getTriangulationDataSource().getPoints(), toZetLessPoints));
         checkArgument(points.containsAll(newHashSet(concat(transform(segments, toPoints)))),
                 "Segments have to be based on provided points");
     }
