@@ -100,7 +100,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 
 
         mapOfPolygons.remove(side1.getKey());
-        mapOfPolygons.remove(side1.getKey());
+        mapOfPolygons.remove(side2.getKey());
         polygons.remove(side1);
         polygons.remove(side2);
 
@@ -131,7 +131,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         pointsOnLongSegment.add(line.getP2());
         for (Point p:allPoints) {
             if (!p.equals(line.getP1()) && !p.equals(line.getP2())) {
-                if (l.ptSegDist(p.getX(), p.getY()) == 0.0D) {
+                if (HelperMethods.isPointOnTheLine(line, p)) {
                       pointsOnLongSegment.add(p);
                 }
             }
@@ -168,16 +168,19 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
                     for (int i = j+2; i < side1AdjacentPolygons.size(); i++) {
                         Point p1 = polygonToSplit.getPoints().get(j);
                         Point p2 = polygonToSplit.getPoints().get(i);
+                        if (!p1.equals(p2)) {
+                            Line splitCandidate = new Line(p1, p2);
+                            if (HelperMethods.isLineInsidePolygon(polygonToSplit, splitCandidate, getBoundingBox())){
+                                Polygon newSide1 = new Polygon();
+                                Polygon newSide2 = new Polygon();
+                                HelperMethods.dividePolygonByLine(splitCandidate, polygonToSplit, newSide1, newSide2);
+                                divideToConstrainedPolygons(newSide1, newTriangles);
+                                divideToConstrainedPolygons(newSide2, newTriangles);
+                                foundSplit = true;
+                                break;
+                            }
+                        } else {
 
-                        Line splitCandidate = new Line(p1, p2);
-                        if (HelperMethods.isLineInsidePolygon(polygonToSplit, splitCandidate, getBoundingBox().maxX())){
-                            Polygon newSide1 = new Polygon();
-                            Polygon newSide2 = new Polygon();
-                            HelperMethods.dividePolygonByLine(splitCandidate, polygonToSplit, newSide1, newSide2);
-                            divideToConstrainedPolygons(newSide1, newTriangles);
-                            divideToConstrainedPolygons(newSide2, newTriangles);
-                            foundSplit = true;
-                            break;
                         }
                     }
                 } else {
@@ -225,11 +228,14 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
      * @param polygonsInSight
      */
     private void fillPolygonsInTheRightDirection(Line line, Polygon currentPolygon, List<Polygon> polygonsInSight) {
+
         List<Polygon> intersectingPolygons = getFirstPolygonInDirectionOfP2(line, currentPolygon.getAdjacentPolygons());
+        int i=0;
         for (Polygon intersectingPolygon : intersectingPolygons) {
             if (!polygonsInSight.contains(intersectingPolygon)) {
                 polygonsInSight.add(intersectingPolygon);
                 fillPolygonsInTheRightDirection(line, intersectingPolygon, polygonsInSight);
+                i++;
             }
         }
     }

@@ -235,12 +235,28 @@ public class Polygon {
     public Polygon(List<Point> points, List<Polygon> adjacentPolygons) {
         this.points = points;
         this.adjacentPolygons = adjacentPolygons;
+
+        Set<Point> set = Sets.newHashSet();
+        set.addAll(points);
+
+        if (set.size() < points.size()) {
+            throw new IllegalArgumentException("can't be smaller");
+        }
+
         updateIndexes();
     }
 
     public void addPointsAndPolygons(List<Point> points, List<Polygon> adjacentPolygons) {
         this.points = points;
         this.adjacentPolygons = adjacentPolygons;
+
+        Set<Point> set = Sets.newHashSet();
+        set.addAll(points);
+
+        if (set.size() < points.size()) {
+            throw new IllegalArgumentException("can't be smaller");
+        }
+
         updateIndexes();
     }
 
@@ -251,6 +267,13 @@ public class Polygon {
     public void insertInIndex(int index, List<Point> points, List<Polygon> polygons) {
         this.points.addAll(index, points);
         this.adjacentPolygons.addAll(index, polygons);
+
+        Set<Point> set = Sets.newHashSet();
+        set.addAll(points);
+
+        if (set.size() < points.size()) {
+            throw new IllegalArgumentException("can't be smaller");
+        }
 
         updateIndexes();
     }

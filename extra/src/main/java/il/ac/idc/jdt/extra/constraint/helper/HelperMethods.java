@@ -3,8 +3,10 @@ package il.ac.idc.jdt.extra.constraint.helper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import il.ac.idc.jdt.BoundingBox;
 import il.ac.idc.jdt.Point;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
+import il.ac.idc.jdt.extra.constraint.datamodel.PointsXComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.PointsYComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.Triangle;
@@ -181,36 +183,50 @@ public class HelperMethods {
     }
 
 
-    public static boolean isLineInsidePolygon(Polygon polygon, Line line, double maxHeight) {
-        if (polygon.doesLineCrossPolygon(line)) {
+    public static boolean isLineInsidePolygon(Polygon polygon, Line suggestedLine, BoundingBox boundingBox) {
+        if (polygon.doesLineCrossPolygon(suggestedLine)) {
             return false;
         } else {
-            Point pointForVerticalLine = createDescriptorPointOfLine(line);
-            Line verticalLineFromPoint = new Line(pointForVerticalLine, new Point(pointForVerticalLine.getX(), maxHeight));
+            Point descriptorPointOfLine = createDescriptorPointOfLine(suggestedLine);
+            Line lineFromPoint;
+            boolean lineVertical = isLineVertical(suggestedLine);
+            if (lineVertical) {
+                lineFromPoint = new Line(descriptorPointOfLine, new Point(boundingBox.getWidth(), descriptorPointOfLine.getY()));
+            } else {
+                lineFromPoint = new Line(descriptorPointOfLine, new Point(descriptorPointOfLine.getX(), boundingBox.getHeight()));
+            }
 
-            List<Point> intersectionPoints = Lists.newArrayList(pointForVerticalLine);
+            List<Point> intersectionPoints = Lists.newArrayList(descriptorPointOfLine);
             List<Line> linesFromPolygon = polygon.getLinesFromPolygon();
             //if somehow we managed to send line to split by which is one of the original polygon lines
-            if (linesFromPolygon.contains(line)) {
+            if (linesFromPolygon.contains(suggestedLine)) {
                 return false;
             }
             for (Line lineFromPolygon : linesFromPolygon) {
                 if (lineFromPolygon != null) {
-                    Point intersectionPoint = findIntersectionPoint(lineFromPolygon, verticalLineFromPoint);
+                    Point intersectionPoint = findIntersectionPoint(lineFromPolygon, lineFromPoint);
                     if (intersectionPoint != null) {
                         intersectionPoints.add(intersectionPoint);
                     }
                 }
             }
 
-            int numOfCrossAbove = getNumberOfCrossAboveIntersectionPoint(pointForVerticalLine, intersectionPoints);
+            int numOfCrossAbove = getNumberOfCrossAboveIntersectionPoint(descriptorPointOfLine, intersectionPoints, lineVertical);
             return (numOfCrossAbove%2==1);
         }
     }
 
-    private static int getNumberOfCrossAboveIntersectionPoint(Point pointForVerticalLine, List<Point> intersectionPoints) {
+    private static boolean isLineVertical(Line line) {
+        return line.getP1().getX() == line.getP2().getX();
+    }
+
+    private static int getNumberOfCrossAboveIntersectionPoint(Point pointForVerticalLine, List<Point> intersectionPoints, boolean isVertical) {
         int numOfCrossAbove = 0;
-        Collections.sort(intersectionPoints, new PointsYComparator());
+        if (isVertical) {
+            Collections.sort(intersectionPoints, new PointsXComparator());
+        } else {
+            Collections.sort(intersectionPoints, new PointsYComparator());
+        }
         for (int i = 0; i < intersectionPoints.size(); i++) {
             if (intersectionPoints.get(i).equals(pointForVerticalLine)) {
                 numOfCrossAbove = intersectionPoints.size() - i + 1;
@@ -263,5 +279,33 @@ public class HelperMethods {
     private static boolean isIntersectionPointOnOneOfTheLines(double x1, double x2, double y1, double y2, double xi, double yi) {
         return ((xi <= x1 && xi >= x2) || (xi >= x1 && xi <= x2)) &&
             ((yi <= y1 && yi >= y2) || (yi >= y1 && y1 <= y2));
+    }
+
+    public static boolean isPointOnTheLine(Line l, Point p) {
+        if (isLineVertical(l)) {
+            if (p.getX() == l.getP1().getX()) {
+                if ((p.getY() < l.getP1().getY() && p.getY() > l.getP2().getY()) ||
+                        (p.getY() < l.getP2().getY() && p.getY() > l.getP1().getY())) {
+                     return true;
+                }
+            }
+        }  else if (l.getP1().getY() == l.getP2().getY()) {
+            if (p.getY() == l.getP1().getY()) {
+                if ((p.getX() < l.getP1().getX() && p.getX() > l.getP2().getX()) ||
+                        (p.getX() < l.getP2().getX() && p.getX() > l.getP1().getX())) {
+                     return true;
+                }
+            }
+        }
+        double slope = (double)(l.getP1().getY() - l.getP2().getY())/(l.getP1().getX() - l.getP2().getX());
+        double extra = (-1*slope*l.getP1().getX()) + (l.getP1().getY());
+
+        double yValue = slope * p.getX() + extra;
+
+        if (yValue == p.getY()) {
+            return isIntersectionPointOnOneOfTheLines(l.getP1().getX(), l.getP2().getX(), l.getP1().getY(), l.getP2().getY(), p.getX(), p.getY());
+        }  else {
+            return false;
+        }
     }
 }

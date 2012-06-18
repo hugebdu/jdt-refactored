@@ -184,24 +184,67 @@ public class ConverterTest {
         Polygon pToTest = new Polygon(points, polygons);
 
         Line lineInside = new Line(p22, p30);
-        boolean lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, 3);
+        BoundingBox boundingBox = new BoundingBox(0, 3, 0, 3, 0, 3);
+        boolean lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, boundingBox);
         assertTrue(lineInsidePolygon);
 
         lineInside = new Line(p33, p20);
-        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, 3);
+        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, boundingBox);
         assertTrue(lineInsidePolygon);
 
         lineInside = new Line(p13, p20);
-        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, 3);
+        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, boundingBox);
         assertFalse(lineInsidePolygon);
 
         lineInside = new Line(p13, p11);
-        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, 3);
+        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, boundingBox);
         assertFalse(lineInsidePolygon);
 
         lineInside = new Line(p33, p11);
-        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, 3);
+        lineInsidePolygon = HelperMethods.isLineInsidePolygon(pToTest, lineInside, boundingBox);
         assertFalse(lineInsidePolygon);
+    }
+
+    @Test
+    public void testIsPointOnTheLine() {
+        Point p1 = new Point(1, 1);
+        Point p2 = new Point(2, 2);
+
+        Line l1 = new Line(p1, p2);
+
+        boolean pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(1.1D, 1.1D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(1.9D, 1.9D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(3D, 3D));
+        assertTrue(!pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(1.1D, 1.2D));
+        assertTrue(!pointOnTheLine);
+
+        Point p12 = new Point(1, 1);
+        Point p22 = new Point(2, 1);
+
+        Line l2 = new Line(p12, p22);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l2, new Point(1.5D, 1D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l2, new Point(3D, 1D));
+        assertTrue(!pointOnTheLine);
+
+        Point p13 = new Point(1, 1);
+        Point p23 = new Point(1, 2);
+
+        Line l3 = new Line(p13, p23);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(1D, 1.5D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(1D, 0.5D));
+        assertTrue(!pointOnTheLine);
     }
 }
 
