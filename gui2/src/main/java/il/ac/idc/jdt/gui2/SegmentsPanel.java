@@ -84,7 +84,7 @@ public class SegmentsPanel extends JPanel
             {
                 Object[] selectedValues = list.getSelectedValues();
 
-                if (isDeletePressed(e) && hasSelectedItems(selectedValues))
+                if (isDeletePressed(e) && hasSelectedItems(selectedValues) && isSegmentsEditingEnabled())
                     removeSelectedItems(selectedValues);
             }
 
