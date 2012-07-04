@@ -2,15 +2,16 @@ package il.ac.idc.jdt.extra.helper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import il.ac.idc.jdt.*;
+import il.ac.idc.jdt.BoundingBox;
 import il.ac.idc.jdt.Point;
+import il.ac.idc.jdt.Triangle;
 import il.ac.idc.jdt.extra.constraint.ConstrainedDelaunayTriangulation;
-import il.ac.idc.jdt.extra.constraint.datamodel.*;
+import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.extra.constraint.helper.HelperMethods;
 import org.junit.Test;
+
 import java.util.*;
-import java.util.List;
 
 import static junit.framework.Assert.*;
 
@@ -21,7 +22,7 @@ import static junit.framework.Assert.*;
  * Time: 12:17 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ConverterTest {
+public class HelperMethodsTest {
     private static Point p11;
     private static Point p22;
     private static Point p24;
@@ -160,10 +161,66 @@ public class ConverterTest {
         assertNull(intersectionPoint);
     }
 
+    @Test
+    public void testIntersectionPointOnTipFromLeft() {
+        Point p3 = new Point(2D, 1D);
+        Point p4 = new Point(2D, 3D);
+        Line l2 = new Line(p3, p4);
+
+        Point p1 = new Point(1D, 1D);
+        Point p2 = new Point(2D, 2D);
+        Line l1 = new Line(p1, p2);
+
+        Point intersectionPoint = HelperMethods.findIntersectionPoint(l1, l2);
+        assertEquals(p2, intersectionPoint);
+
+        p1 = new Point(2D, 2D);
+        p2 = new Point(1D, 7D);
+        l1 = new Line(p1, p2);
+
+        intersectionPoint = HelperMethods.findIntersectionPoint(l1, l2);
+        assertEquals(p1, intersectionPoint);
+
+        p1 = new Point(2D, 2D);
+        p2 = new Point(1D, 2D);
+        l1 = new Line(p1, p2);
+
+        intersectionPoint = HelperMethods.findIntersectionPoint(l1, l2);
+        assertEquals(p1, intersectionPoint);
+    }
+
+
+    @Test
+    public void testIntersectionPointOnTipFromRight() {
+        Point p3 = new Point(2D, 1D);
+        Point p4 = new Point(2D, 3D);
+        Line l2 = new Line(p3, p4);
+
+        Point p1 = new Point(2D, 2D);
+        Point p2 = new Point(3D, 2D);
+        Line l1 = new Line(p1, p2);
+
+        Point intersectionPoint = HelperMethods.findIntersectionPoint(l1, l2);
+        assertNull(intersectionPoint);
+
+        p1 = new Point(2D, 2D);
+        p2 = new Point(3D, 7D);
+        l1 = new Line(p1, p2);
+
+        intersectionPoint = HelperMethods.findIntersectionPoint(l1, l2);
+        assertNull(intersectionPoint);
+
+        p1 = new Point(4D, 1D);
+        p2 = new Point(2D, 2D);
+        l1 = new Line(p1, p2);
+
+        intersectionPoint = HelperMethods.findIntersectionPoint(l1, l2);
+        assertNull(intersectionPoint);
+    }
+
     private void checkIntersection(Point p1, Point p2, Point p3, Point p4, double x, double y) {
         Line l1 = new Line(p1, p2);
         Line l2 = new Line(p3, p4);
-
         Point intersectionPoint = HelperMethods.findIntersectionPoint(l1, l2);
         assertEquals(x, intersectionPoint.getX());
         assertEquals(y, intersectionPoint.getY());
@@ -215,6 +272,12 @@ public class ConverterTest {
         boolean pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(1.1D, 1.1D));
         assertTrue(pointOnTheLine);
 
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(1D, 1D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(2D, 2D));
+        assertTrue(pointOnTheLine);
+
         pointOnTheLine = HelperMethods.isPointOnTheLine(l1, new Point(1.9D, 1.9D));
         assertTrue(pointOnTheLine);
 
@@ -235,16 +298,93 @@ public class ConverterTest {
         pointOnTheLine = HelperMethods.isPointOnTheLine(l2, new Point(3D, 1D));
         assertTrue(!pointOnTheLine);
 
+    }
+
+    public void testIsPointOnTheLineVerticalHorisontal() {
         Point p13 = new Point(1, 1);
         Point p23 = new Point(1, 2);
 
         Line l3 = new Line(p13, p23);
 
-        pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(1D, 1.5D));
+        boolean pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(1D, 1.5D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(1D, 1D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(1D, 2D));
         assertTrue(pointOnTheLine);
 
         pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(1D, 0.5D));
         assertTrue(!pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l3, new Point(0D, 7D));
+        assertTrue(!pointOnTheLine);
+
+        Point p12 = new Point(1, 1);
+        Point p22 = new Point(2, 1);
+
+        Line l2 = new Line(p12, p22);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l2, new Point(1.5D, 1D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l2, new Point(1D, 1D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l2, new Point(2D, 1D));
+        assertTrue(pointOnTheLine);
+
+        pointOnTheLine = HelperMethods.isPointOnTheLine(l2, new Point(3D, 1D));
+        assertTrue(!pointOnTheLine);
+    }
+
+    @Test
+    public void testMergeTwoPolygons() {
+
+        Point p21 = new Point(2,1);
+        Point p61 = new Point(6,1);
+        Point p63 = new Point(6,3);
+        Point p75 = new Point(7,5);
+        Point p35 = new Point(3,5);
+        Point p03 = new Point(0,3);
+        Point p43 = new Point(4,3);
+
+
+        List<Point> points = Lists.newArrayList(p21, p61, p63, p75, p35, p03, p43);
+
+        ConstrainedDelaunayTriangulation triangulation = new ConstrainedDelaunayTriangulation(points);
+        System.out.println(triangulation);
+        triangulation.addConstraint(new Line(p75, p21));
+
+
+
+        Polygon polygon1 = new Polygon();
+        Polygon polygon2 = new Polygon();
+        Polygon polygon3 = new Polygon();
+        Polygon polygon4 = new Polygon();
+        Polygon polygon5 = new Polygon();
+        Polygon polygon6 = new Polygon();
+
+        polygon1.addPointsAndPolygons(Lists.newArrayList(p63, p75, p35), Lists.newArrayList(null, null, polygon3));
+        polygon2.addPointsAndPolygons(Lists.newArrayList(p61, p63, p21), Lists.newArrayList(null, polygon4, null));
+        polygon3.addPointsAndPolygons(Lists.newArrayList(p63, p35, p43), Lists.newArrayList(polygon1, polygon5, polygon4));
+        polygon4.addPointsAndPolygons(Lists.newArrayList(p21, p63, p43), Lists.newArrayList(polygon2, polygon3, polygon5));
+        polygon5.addPointsAndPolygons(Lists.newArrayList(p43, p35, p21), Lists.newArrayList(polygon3, polygon6, polygon4));
+        polygon6.addPointsAndPolygons(Lists.newArrayList(p35, p03, p21), Lists.newArrayList(null, null, polygon5));
+
+
+        Polygon merged1 = HelperMethods.mergeTwoPolygons(polygon3, polygon4);
+        assertEquals(4, merged1.getSize());
+
+        Polygon merged2 = HelperMethods.mergeTwoPolygons(merged1, polygon5);
+        assertEquals(3, merged2.getSize());
+
+        List<Point> merged2Points = merged2.getPoints();
+        assertTrue(merged2Points.contains(p63));
+        assertTrue(merged2Points.contains(p35));
+        assertTrue(merged2Points.contains(p21));
+       // Polygon merged3 = HelperMethods.mergeTwoPolygons(polygon1, polygon2);
     }
 }
 

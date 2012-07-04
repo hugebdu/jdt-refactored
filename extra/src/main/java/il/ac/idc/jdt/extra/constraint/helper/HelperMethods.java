@@ -12,7 +12,6 @@ import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
 import il.ac.idc.jdt.Triangle;
 import org.javatuples.Pair;
 
-import java.awt.geom.Line2D;
 import java.util.*;
 
 import static com.google.common.collect.Lists.newLinkedList;
@@ -37,25 +36,105 @@ public class HelperMethods {
 
 
     public static Polygon mergeTwoPolygons(Polygon polygonToMerge, Polygon rootToMergeInto) {
-        Point intersectionPoint = getIntersectionPoint(polygonToMerge, rootToMergeInto);
-        Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
+        List<Point> intersectionPoints = getIntersectionPoints(polygonToMerge, rootToMergeInto);
 
-        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPoint(intersectionPoint, true);
-
-        List<Polygon> polygons = Lists.newArrayList(rootToMergeInto.getAdjacentPolygons());
-        List<Point> points = Lists.newArrayList(rootToMergeInto.getPoints());
-        Polygon mergedPolygon = new Polygon(points, polygons);
-
+        Polygon mergedPolygon = new Polygon();
         //remove the intersection point to avoid adding it twice
-        mergedPolygon.removeByIndex(indexOfPoint);
-        //merge the two polygons
+        if (intersectionPoints.size()==2) {
+            System.out.println("twoPoints");
+            orderIntersectionPoints(intersectionPoints, rootToMergeInto);
+        }
 
-        mergedPolygon.getPoints().addAll(indexOfPoint, rotated.getPoints());
-        mergedPolygon.getAdjacentPolygons().addAll(indexOfPoint, rotated.getPolygons());
+        Point leadingIntersectionPoint = intersectionPoints.get(0);
+        Polygon.PointsPolygons rotateOrderByLeadingPoint = rootToMergeInto.getRotateOrderByLeadingPoint(leadingIntersectionPoint, false);
+        mergedPolygon.addPointsAndPolygons(rotateOrderByLeadingPoint.getPoints(), rotateOrderByLeadingPoint.getPolygons());
 
+        //remove the common point not to add it twice
+        mergedPolygon.removeByIndex(0);
+        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPoint(leadingIntersectionPoint, true);
+
+        //remove the second point since it is of the non convex edge not to count it anymore
+        if (intersectionPoints.size() == 2) {
+            mergedPolygon.removeByIndex(0);
+
+            int lastIndex = rotated.getPoints().size() - 1;
+            rotated.getPoints().remove(lastIndex);
+            rotated.getPolygons().remove(lastIndex);
+        }
+
+        mergedPolygon.getPoints().addAll(0, rotated.getPoints());
+        mergedPolygon.getAdjacentPolygons().addAll(0, rotated.getPolygons());
+
+        //update the neighbours
         updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
 
         return mergedPolygon;
+
+
+
+
+
+//        Point intersectionPoint = getIntersectionPoints(polygonToMerge, rootToMergeInto).iterator().next();
+//        Polygon.PointsPolygons rotateOrderByLeadingPoint = rootToMergeInto.getRotateOrderByLeadingPoint(intersectionPoint, false);
+//        Integer indexOfPoint = 0;
+//
+//        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPoint(intersectionPoint, true);
+//
+//        List<Polygon> polygons = Lists.newArrayList(rootToMergeInto.getAdjacentPolygons());
+//        List<Point> points = Lists.newArrayList(rootToMergeInto.getPoints());
+//        Polygon mergedPolygon = new Polygon(rotateOrderByLeadingPoint.getPoints(), rotateOrderByLeadingPoint.getPolygons());
+//
+//        //remove the intersection point to avoid adding it twice
+//        mergedPolygon.removeByIndex(indexOfPoint);
+//        //merge the two polygons
+//
+//        mergedPolygon.getPoints().addAll(indexOfPoint, rotated.getPoints());
+//        mergedPolygon.getAdjacentPolygons().addAll(indexOfPoint, rotated.getPolygons());
+//
+//        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
+//
+//        return mergedPolygon;
+
+
+//        Point intersectionPoint = getIntersectionPoints(polygonToMerge, rootToMergeInto).iterator().next();
+//        Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
+//
+//        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPoint(intersectionPoint, true);
+//
+//        List<Polygon> polygons = Lists.newArrayList(rootToMergeInto.getAdjacentPolygons());
+//        List<Point> points = Lists.newArrayList(rootToMergeInto.getPoints());
+//        Polygon mergedPolygon = new Polygon(points, polygons);
+//
+//        //remove the intersection point to avoid adding it twice
+//        mergedPolygon.removeByIndex(indexOfPoint);
+//        //merge the two polygons
+//
+//        mergedPolygon.getPoints().addAll(indexOfPoint, rotated.getPoints());
+//        mergedPolygon.getAdjacentPolygons().addAll(indexOfPoint, rotated.getPolygons());
+//
+//        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
+//
+//        return mergedPolygon;
+    }
+
+    /**
+     * Orders the Points in place so that the first point will be the first intersection point clockwise.
+     * @param intersectionPoints
+     * @param mergedPolygon
+     */
+    private static void orderIntersectionPoints(List<Point> intersectionPoints, Polygon mergedPolygon) {
+        Integer firstIndex = mergedPolygon.getIndexOfPoint(intersectionPoints.get(0));
+        Integer secondIndex = mergedPolygon.getIndexOfPoint(intersectionPoints.get(1));
+
+        if ((secondIndex - firstIndex) != 1) {
+            swichPoints(intersectionPoints);
+        }
+    }
+
+    private static void swichPoints(List<Point> intersectionPoints) {
+        Point temp = intersectionPoints.get(0);
+        intersectionPoints.set(0, intersectionPoints.get(1));
+        intersectionPoints.set(1, temp);
     }
 
     public static void dividePolygonByLine(Line line, Polygon merged, Polygon side1, Polygon side2) {
@@ -103,18 +182,29 @@ public class HelperMethods {
         return mergedPoints.get(i).equals(line.getP2());
     }
 
-    private static Point getIntersectionPoint(Polygon polygonToMerge, Polygon rootToMergeInto) {
+
+    private static List<Point> getIntersectionPoints(Polygon polygonToMerge, Polygon rootToMergeInto) {
+        List<Point> intersectionPoints = Lists.newArrayList();
         List<Polygon> surroundingPolygons = rootToMergeInto.getAdjacentPolygons();
         for(int i=0; i<rootToMergeInto.getSize(); i++) {
             Polygon polygon = surroundingPolygons.get(i);
             if (polygon != null) {
                 if (polygon.equals(polygonToMerge)) {
-                    return rootToMergeInto.getPoints().get(i);
+                    intersectionPoints.add(rootToMergeInto.getPoints().get(i));
                 }
             }
         }
 
-        throw new RuntimeException("illegal input");
+        if (intersectionPoints.isEmpty()) {
+            throw new RuntimeException("illegal input - no intersection between two polygons");
+        } else {
+            if (intersectionPoints.size() == 2) {
+                System.out.println("found two intersection points");
+            }  if (intersectionPoints.size() > 2) {
+                throw new RuntimeException("illegal input - more then two intersection points");
+            }
+            return intersectionPoints;
+        }
     }
 
     private static void updateNeighboursWithMergedPolygon(Polygon polygonToMerge, Polygon rootToMergeInto, Polygon merged) {
@@ -184,6 +274,41 @@ public class HelperMethods {
 
 
     public static boolean isLineInsidePolygon(Polygon polygon, Line suggestedLine, BoundingBox boundingBox) {
+//        if (polygon.doesLineCrossPolygon(suggestedLine)) {
+//            return false;
+//        } else {
+//            Point descriptorPointOfLine = createDescriptorPointOfLine(suggestedLine);
+//            List<Line> linesFromPolygon = polygon.getLinesFromPolygon();
+//            //if somehow we managed to send line to split by which is one of the original polygon lines
+//            if (linesFromPolygon.contains(suggestedLine)) {
+//                return false;
+//            }
+//            for (Line line : linesFromPolygon) {
+//                boolean pointOnTheLine = isPointOnTheLine(line, descriptorPointOfLine);
+//                if (pointOnTheLine) {
+//                    return false;
+//                }
+//            }
+//
+//            Line lineFromPoint;
+//            boolean lineVertical = isLineVertical(suggestedLine);
+//            lineFromPoint = new Line(descriptorPointOfLine, new Point(boundingBox.getWidth(), descriptorPointOfLine.getY()));
+//
+//            List<Point> intersectionPoints = Lists.newArrayList(descriptorPointOfLine);
+//
+//            for (Line lineFromPolygon : linesFromPolygon) {
+//                if (lineFromPolygon != null) {
+//                    Point intersectionPoint = findIntersectionPoint(lineFromPolygon, lineFromPoint);
+//                    if (intersectionPoint != null) {
+//                        intersectionPoints.add(intersectionPoint);
+//                    }
+//                }
+//            }
+//
+//            int numOfCrossAbove = getNumberOfCrossAboveIntersectionPoint(descriptorPointOfLine, intersectionPoints, lineVertical);
+//            return (numOfCrossAbove%2==1);
+//        }
+
         if (polygon.doesLineCrossPolygon(suggestedLine)) {
             return false;
         } else {
@@ -244,25 +369,26 @@ public class HelperMethods {
      * If lines share the same point return null;
      * If the intersection is not on the lines then return null also
      * If parallel return null
-     * @param l1
-     * @param l2
+     * @param polygonLine
+     * @param descriptorLine
      * @return
      */
-    public static Point findIntersectionPoint(Line l1, Line l2) {
+    public static Point findIntersectionPoint(Line polygonLine, Line descriptorLine) {
 
-        if (l1.isConnectedToLine(l2.getP1(), l2.getP2())) {
+        if (polygonLine.isConnectedToLine(descriptorLine.getP1(), descriptorLine.getP2())) {
+            System.out.println("should not get here since we deal with this option by checking of the point is on one of the lines");
             return null;
         }
 
-        double x1 = l1.getP1().getX();
-        double x2 = l1.getP2().getX();
-        double y1 = l1.getP1().getY();
-        double y2 = l1.getP2().getY();
+        double x1 = polygonLine.getP1().getX();
+        double x2 = polygonLine.getP2().getX();
+        double y1 = polygonLine.getP1().getY();
+        double y2 = polygonLine.getP2().getY();
 
-        double x3 = l2.getP1().getX();
-        double x4 = l2.getP2().getX();
-        double y3 = l2.getP1().getY();
-        double y4 = l2.getP2().getY();
+        double x3 = descriptorLine.getP1().getX();
+        double x4 = descriptorLine.getP2().getX();
+        double y3 = descriptorLine.getP1().getY();
+        double y4 = descriptorLine.getP2().getY();
         double d = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
         if (d == 0) return null;
 
@@ -276,36 +402,71 @@ public class HelperMethods {
         }
     }
 
+    /**
+     * check the intersection of the line (xi, yi) with line((x1,y1)(x2,y2)). If the intersection point is exactly on the
+     * line (xi, yi) then count it only if the line ((x1,y1)(x2,y2)) is from the left side of (xi, yi)
+     * @param x1
+     * @param x2
+     * @param y1
+     * @param y2
+     * @param xi
+     * @param yi
+     * @return
+     */
     private static boolean isIntersectionPointOnOneOfTheLines(double x1, double x2, double y1, double y2, double xi, double yi) {
-        return ((xi <= x1 && xi >= x2) || (xi >= x1 && xi <= x2)) &&
+        return ((xi <= x1 && xi > x2) || (xi > x1 && xi <= x2)) &&
             ((yi <= y1 && yi >= y2) || (yi >= y1 && y1 <= y2));
     }
 
-    public static boolean isPointOnTheLine(Line l, Point p) {
-        if (isLineVertical(l)) {
-            if (p.getX() == l.getP1().getX()) {
-                if ((p.getY() < l.getP1().getY() && p.getY() > l.getP2().getY()) ||
-                        (p.getY() < l.getP2().getY() && p.getY() > l.getP1().getY())) {
-                     return true;
-                }
-            }
-        }  else if (l.getP1().getY() == l.getP2().getY()) {
-            if (p.getY() == l.getP1().getY()) {
-                if ((p.getX() < l.getP1().getX() && p.getX() > l.getP2().getX()) ||
-                        (p.getX() < l.getP2().getX() && p.getX() > l.getP1().getX())) {
-                     return true;
-                }
-            }
+    private static boolean isIntersectionPointOnOneOfTheLinesWithNoRegardToOrder(double x1, double x2, double y1, double y2, double xi, double yi) {
+        return ((xi <= x1 && xi >= x2) || (xi >= x1 && xi <= x2)) &&
+                ((yi <= y1 && yi >= y2) || (yi >= y1 && y1 <= y2));
+    }
+
+    public static boolean isPointOnTheLine(Line l, Point p, boolean isRegardToOrder) {
+        if (isPointOnVerticalOrHorisontalLine(l, p)) {
+            return true;
         }
+
         double slope = (double)(l.getP1().getY() - l.getP2().getY())/(l.getP1().getX() - l.getP2().getX());
         double extra = (-1*slope*l.getP1().getX()) + (l.getP1().getY());
 
         double yValue = slope * p.getX() + extra;
 
+        //this means that the point is on the formula representing the line, still need to check if it is on the line
         if (yValue == p.getY()) {
-            return isIntersectionPointOnOneOfTheLines(l.getP1().getX(), l.getP2().getX(), l.getP1().getY(), l.getP2().getY(), p.getX(), p.getY());
+            if (isRegardToOrder) {
+                return isIntersectionPointOnOneOfTheLines(l.getP1().getX(), l.getP2().getX(), l.getP1().getY(), l.getP2().getY(), p.getX(), p.getY());
+            } else {
+                return isIntersectionPointOnOneOfTheLinesWithNoRegardToOrder(l.getP1().getX(), l.getP2().getX(), l.getP1().getY(), l.getP2().getY(), p.getX(), p.getY());
+            }
         }  else {
             return false;
         }
+    }
+
+    public static boolean isPointOnTheLine(Line l, Point p) {
+        return isPointOnTheLine(l, p, true);
+    }
+
+
+
+    private static boolean isPointOnVerticalOrHorisontalLine(Line l, Point p) {
+        if (isLineVertical(l)) {
+            if (p.getX() == l.getP1().getX()) {
+                if ((p.getY() <= l.getP1().getY() && p.getY() >= l.getP2().getY()) ||
+                        (p.getY() <= l.getP2().getY() && p.getY() >= l.getP1().getY())) {
+                    return true;
+                }
+            }
+        }  else if (l.getP1().getY() == l.getP2().getY()) {
+            if (p.getY() == l.getP1().getY()) {
+                if ((p.getX() <= l.getP1().getX() && p.getX() >= l.getP2().getX()) ||
+                        (p.getX() <= l.getP2().getX() && p.getX() >= l.getP1().getX())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

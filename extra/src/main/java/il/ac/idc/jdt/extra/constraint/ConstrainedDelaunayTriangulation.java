@@ -66,7 +66,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         }
         //stage 1
         List<Polygon> effectedPolygons = findEffectedPolygons(line.getP1());
-        Polygon firstPolygon = getFirstPolygonInDirectionOfP2(line, effectedPolygons).iterator().next();
+        Polygon firstPolygon = getPolygonsInDirectionToP2(line, effectedPolygons).iterator().next();
 
         List<Polygon> polygonsInSight = new CopyOnWriteArrayList<Polygon>();
         fillPolygonsInTheRightDirection(line, firstPolygon, polygonsInSight);
@@ -177,7 +177,12 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
                                 divideToConstrainedPolygons(newSide1, newTriangles);
                                 divideToConstrainedPolygons(newSide2, newTriangles);
                                 foundSplit = true;
+                                System.out.println("Line " + p1 + p2 + "is inside!!!!!!!!!!!!!!!!!!!");
+
                                 break;
+                            }  else {
+                                System.out.println("Line " + p1 + p2 + "not inside");
+
                             }
                         } else {
 
@@ -197,30 +202,38 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
      * @param effectedPolygonsP1
      * @return
      */
-    private List<Polygon> getFirstPolygonInDirectionOfP2(Line line, List<Polygon> effectedPolygonsP1) {
+    private List<Polygon> getPolygonsInDirectionToP2(Line line, List<Polygon> effectedPolygonsP1) {
         List<Polygon> polygonInTheRightDirection = Lists.newArrayList();
         for (Polygon polygon : effectedPolygonsP1) {
             if (polygon != null) {
-                List<Point> points = polygon.getPoints();
-                for (int i=0; i< points.size(); i++) {
-                    int curr = i;
-                    int next = (i + 1) < points.size() ? (i+1) : 0;
-                    if (!line.isConnectedToLine(points.get(curr), points.get(next))) {
-                        if (areLinesIntersect(line, points, curr, next)) {
+                List<Line> linesFromPolygon = polygon.getLinesFromPolygon();
+                for (Line lineFromPolygon : linesFromPolygon) {
+                    if (!line.isConnectedToLine(lineFromPolygon.getP1(), lineFromPolygon.getP2())) {
+                        if (areLinesIntersect(line, lineFromPolygon)) {
                             polygonInTheRightDirection.add(polygon);
+                            break;
+                        } else if (HelperMethods.isPointOnTheLine(line, lineFromPolygon.getP1()) || HelperMethods.isPointOnTheLine(line, lineFromPolygon.getP2())) {
+                            System.out.println("added polygon on the line!");
+                            polygonInTheRightDirection.add(polygon);
+                            break;
                         }
                     }
                 }
             }
         }
+
         return polygonInTheRightDirection;
+    }
+
+    private boolean areLinesIntersect(Line l1, Line l2) {
+        return Line2D.linesIntersect(l1.getP1().getX(), l1.getP1().getY(), l1.getP2().getX(), l1.getP2().getY(),
+                l2.getP1().getX(), l2.getP1().getY(), l2.getP2().getX(), l2.getP2().getY());
     }
 
     private boolean areLinesIntersect(Line line, List<Point> points, int curr, int next) {
         return Line2D.linesIntersect(line.getP1().getX(), line.getP1().getY(), line.getP2().getX(), line.getP2().getY(),
                 points.get(curr).getX(), points.get(curr).getY(), points.get(next).getX(), points.get(next).getY());
     }
-
     /**
      * fills polygon in sight from the currentPolygon(directed form sideP1) along the line
      * @param line
@@ -229,13 +242,11 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
      */
     private void fillPolygonsInTheRightDirection(Line line, Polygon currentPolygon, List<Polygon> polygonsInSight) {
 
-        List<Polygon> intersectingPolygons = getFirstPolygonInDirectionOfP2(line, currentPolygon.getAdjacentPolygons());
-        int i=0;
+        List<Polygon> intersectingPolygons = getPolygonsInDirectionToP2(line, currentPolygon.getAdjacentPolygons());
         for (Polygon intersectingPolygon : intersectingPolygons) {
             if (!polygonsInSight.contains(intersectingPolygon)) {
                 polygonsInSight.add(intersectingPolygon);
                 fillPolygonsInTheRightDirection(line, intersectingPolygon, polygonsInSight);
-                i++;
             }
         }
     }

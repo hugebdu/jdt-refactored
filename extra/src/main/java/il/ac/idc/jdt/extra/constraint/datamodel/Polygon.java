@@ -130,13 +130,13 @@ public class Polygon {
         pointsLedByP.addAll(firstHalfPoints);
         polygonsLedByP.addAll(firstHalfPolygons);
 
-        for (int i=0; i<pointsLedByP.size(); i++) {
-            pointToIndexInList.put(pointsLedByP.get(i), i);
-        }
-
-        for (int i=0; i<polygonsLedByP.size(); i++) {
-            polygonToIndexInList.put(polygonsLedByP.get(i), i);
-        }
+//        for (int i=0; i<pointsLedByP.size(); i++) {
+//            pointToIndexInList.put(pointsLedByP.get(i), i);
+//        }
+//
+//        for (int i=0; i<polygonsLedByP.size(); i++) {
+//            polygonToIndexInList.put(polygonsLedByP.get(i), i);
+//        }
 
         if (isWithoutLastPoint) {
             pointsLedByP.remove(polygonsLedByP.size()-1);
@@ -196,6 +196,12 @@ public class Polygon {
         polygonToIndexInList.remove(removedPolygon);
     }
 
+    /**
+     * Returns true if there is an intersection point petween the two lines. If they just connected by one end then
+     * return false
+     * @param line
+     * @return
+     */
     public boolean doesLineCrossPolygon(Line line) {
         List<Line> linesFromPolygon = getLinesFromPolygon();
         for (Line lineFromPolygon : linesFromPolygon) {
@@ -240,7 +246,7 @@ public class Polygon {
         set.addAll(points);
 
         if (set.size() < points.size()) {
-            throw new IllegalArgumentException("can't be smaller");
+            throw new IllegalArgumentException("Inserted two of the same points!!!");
         }
 
         updateIndexes();
@@ -312,5 +318,12 @@ public class Polygon {
         public List<Polygon> getPolygons() {
             return polygons;
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Polygon{" +
+                "points=" + points;
+
     }
 }
