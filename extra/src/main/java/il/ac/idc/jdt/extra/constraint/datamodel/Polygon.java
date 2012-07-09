@@ -50,10 +50,6 @@ public class Polygon {
      * Helper structure to know the index of a point in the list of points
      */
     private Map<Point, Integer> pointToIndexInList = Maps.newHashMap();
-    /**
-     * Helper structure to know the index of a polygon in the list of adjacentPolygons
-     */
-    private Map<Polygon, Integer> polygonToIndexInList = Maps.newHashMap();
 
     /**
      * This is to convert from Triangle to point constructor, points should be counterclockwise direction
@@ -74,7 +70,6 @@ public class Polygon {
 
     public void addPolygon(Polygon polygon, int index) {
         adjacentPolygons.add(index, polygon);
-        polygonToIndexInList.put(polygon, index);
     }
 
     @Override
@@ -129,14 +124,6 @@ public class Polygon {
 
         pointsLedByP.addAll(firstHalfPoints);
         polygonsLedByP.addAll(firstHalfPolygons);
-
-//        for (int i=0; i<pointsLedByP.size(); i++) {
-//            pointToIndexInList.put(pointsLedByP.get(i), i);
-//        }
-//
-//        for (int i=0; i<polygonsLedByP.size(); i++) {
-//            polygonToIndexInList.put(polygonsLedByP.get(i), i);
-//        }
 
         if (isWithoutLastPoint) {
             pointsLedByP.remove(polygonsLedByP.size()-1);
@@ -193,7 +180,6 @@ public class Polygon {
         pointToIndexInList.remove(removedPoint);
 
         Polygon removedPolygon = adjacentPolygons.remove(i);
-        polygonToIndexInList.remove(removedPolygon);
     }
 
     /**
@@ -225,13 +211,20 @@ public class Polygon {
     }
 
     public Integer getIndexByPolygon(Polygon polygon) {
-        return polygonToIndexInList.get(polygon);
+        int i = 0;
+        for (Polygon poly : adjacentPolygons) {
+            if (poly != null) {
+                if (poly.equals(polygon)) {
+                    return i;
+                }
+            }
+            i++;
+        }
+        return null;
     }
 
     public void setPolygon(int index, Polygon polygon) {
-        Polygon set = adjacentPolygons.set(index, polygon);
-        polygonToIndexInList.remove(set);
-        polygonToIndexInList.put(polygon, index);
+        adjacentPolygons.set(index, polygon);
     }
 
     public Set<Point> getKey() {
@@ -287,7 +280,6 @@ public class Polygon {
     private void updateIndexes() {
         for (int i=0; i<points.size(); i++) {
             pointToIndexInList.put(points.get(i), i);
-            polygonToIndexInList.put(adjacentPolygons.get(i), i);
         }
     }
 
@@ -320,10 +312,26 @@ public class Polygon {
         }
     }
 
+    public String obj() {
+        return super.toString();
+    }
+
     @Override
     public String toString() {
+        StringBuffer buff = new StringBuffer();
+        buff.append("**************************************myObjNumber: "+super.toString()+"\n");
+        buff.append("myObjPoints: "+getPoints()+"\n");
+        buff.append("adjacent:" + "\n");
+        for (Polygon adjacentPolygon : adjacentPolygons) {
+            if (adjacentPolygon!=null) {
+                buff.append(adjacentPolygon.obj() + adjacentPolygon.getPointsToString() + "\n");
+            }
+        }
+        return buff.toString();
+    }
+
+    private String getPointsToString() {
         return "Polygon{" +
                 "points=" + points;
-
     }
 }

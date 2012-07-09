@@ -69,52 +69,6 @@ public class HelperMethods {
         updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
 
         return mergedPolygon;
-
-
-
-
-
-//        Point intersectionPoint = getIntersectionPoints(polygonToMerge, rootToMergeInto).iterator().next();
-//        Polygon.PointsPolygons rotateOrderByLeadingPoint = rootToMergeInto.getRotateOrderByLeadingPoint(intersectionPoint, false);
-//        Integer indexOfPoint = 0;
-//
-//        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPoint(intersectionPoint, true);
-//
-//        List<Polygon> polygons = Lists.newArrayList(rootToMergeInto.getAdjacentPolygons());
-//        List<Point> points = Lists.newArrayList(rootToMergeInto.getPoints());
-//        Polygon mergedPolygon = new Polygon(rotateOrderByLeadingPoint.getPoints(), rotateOrderByLeadingPoint.getPolygons());
-//
-//        //remove the intersection point to avoid adding it twice
-//        mergedPolygon.removeByIndex(indexOfPoint);
-//        //merge the two polygons
-//
-//        mergedPolygon.getPoints().addAll(indexOfPoint, rotated.getPoints());
-//        mergedPolygon.getAdjacentPolygons().addAll(indexOfPoint, rotated.getPolygons());
-//
-//        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
-//
-//        return mergedPolygon;
-
-
-//        Point intersectionPoint = getIntersectionPoints(polygonToMerge, rootToMergeInto).iterator().next();
-//        Integer indexOfPoint = rootToMergeInto.getIndexOfPoint(intersectionPoint);
-//
-//        Polygon.PointsPolygons rotated = polygonToMerge.getRotateOrderByLeadingPoint(intersectionPoint, true);
-//
-//        List<Polygon> polygons = Lists.newArrayList(rootToMergeInto.getAdjacentPolygons());
-//        List<Point> points = Lists.newArrayList(rootToMergeInto.getPoints());
-//        Polygon mergedPolygon = new Polygon(points, polygons);
-//
-//        //remove the intersection point to avoid adding it twice
-//        mergedPolygon.removeByIndex(indexOfPoint);
-//        //merge the two polygons
-//
-//        mergedPolygon.getPoints().addAll(indexOfPoint, rotated.getPoints());
-//        mergedPolygon.getAdjacentPolygons().addAll(indexOfPoint, rotated.getPolygons());
-//
-//        updateNeighboursWithMergedPolygon(polygonToMerge, rootToMergeInto, mergedPolygon);
-//
-//        return mergedPolygon;
     }
 
     /**
@@ -174,7 +128,6 @@ public class HelperMethods {
 
         updateAdjacent(merged, side1, side1.getAdjacentPolygons());
         updateAdjacent(merged, side2, side2.getAdjacentPolygons());
-
     }
 
 
@@ -195,6 +148,9 @@ public class HelperMethods {
             }
         }
 
+        System.out.println("This is in getIntersectionPoint");
+        System.out.println("polygonToMerge:" + polygonToMerge.toString());
+        System.out.println("rootToMergeInto:" + rootToMergeInto.toString());
         if (intersectionPoints.isEmpty()) {
             throw new RuntimeException("illegal input - no intersection between two polygons");
         } else {
