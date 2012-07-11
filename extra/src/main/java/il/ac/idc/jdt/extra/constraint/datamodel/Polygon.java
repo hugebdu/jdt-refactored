@@ -299,6 +299,22 @@ public class Polygon {
         return linesToPaint;
     }
 
+    public List<Line> getLinesFromPolygon2() {
+        List<Line> linesToPaint = Lists.newArrayList();
+        List<Point> points = getPoints();
+        for (int i = 0; i < points.size(); i++) {
+            if (i + 1 < points.size())
+            {
+                Line ab = new Line(points.get(i), points.get(i + 1));
+                linesToPaint.add(ab);
+            }
+        }
+
+        Line line = new Line(points.get(0), points.get(points.size() - 1));
+        linesToPaint.add(line);
+        return linesToPaint;
+    }
+
     public class PointsPolygons {
         private List<Point> points = Lists.newArrayList();
         private List<Polygon> polygons = Lists.newArrayList();

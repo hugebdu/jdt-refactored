@@ -25,7 +25,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 {
     boolean isFirst = true;
-    private Collection<Polygon> polygons = new CopyOnWriteArrayList<Polygon>();
+    private Set<Polygon> polygons = new HashSet<Polygon>();
     private Map<Set<Point>, Polygon> mapOfPolygons = Maps.newHashMap();
     private List<Point> allPoints = Lists.newArrayList();
     /**
@@ -60,12 +60,6 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
     }
 
     private void dealWithSingleLine(Line line) {
-        System.out.println("adding:" + line);
-        System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&Start&&&&&&&&&&&&&&&&&&&&&&&&");
-        for (Polygon polygon : polygons) {
-            System.out.println(polygon.toString());
-        }
-        System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&End&&&&&&&&&&&&&&&&&&&&&&&&");
         for (Polygon p:polygons) {
             List<Line> linesFromPolygon = p.getLinesFromPolygon();
             if (linesFromPolygon.contains(line)) {
@@ -90,7 +84,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 
         mapOfPolygons.remove(merged.getKey());
         polygons.remove(merged);
-            //stage 2
+        //stage 2
         Polygon side1 = new Polygon();
         Polygon side2 = new Polygon();
         HelperMethods.dividePolygonByLine(line, merged, side1, side2);
@@ -108,20 +102,19 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 
         mapOfPolygons.remove(side1.getKey());
         mapOfPolygons.remove(side2.getKey());
+
         polygons.remove(side1);
         polygons.remove(side2);
+
+//        System.out.println("#####################################################################3"+polygons.remove(side1));
+//        System.out.println("#####################################################################3" + polygons.remove(side2));
+//        System.out.println("#####################################################################44"+polygons.remove(side1));
+//        System.out.println("#####################################################################44"+polygons.remove(side2));
 
         for (Polygon p : newTriangles) {
             mapOfPolygons.put(p.getKey(), p);
             polygons.add(p);
         }
-
-
-        System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&StartAfter&&&&&&&&&&&&&&&&&&&&&&&&");
-        for (Polygon polygon : polygons) {
-            System.out.println(polygon.toString());
-        }
-        System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&EndAfter&&&&&&&&&&&&&&&&&&&&&&&&");
     }
 
     /**
@@ -187,16 +180,10 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
                             if (HelperMethods.isLineInsidePolygon(polygonToSplit, splitCandidate, getBoundingBox())){
                                 Polygon newSide1 = new Polygon();
                                 Polygon newSide2 = new Polygon();
+                                System.out.println("going into divide");
                                 HelperMethods.dividePolygonByLine(splitCandidate, polygonToSplit, newSide1, newSide2);
                                 divideToConstrainedPolygons(newSide1, newTriangles);
                                 divideToConstrainedPolygons(newSide2, newTriangles);
-
-                                mapOfPolygons.remove(polygonToSplit.getKey());
-                                polygons.remove(polygonToSplit);
-                                mapOfPolygons.put(newSide1.getKey(), newSide1);
-                                mapOfPolygons.put(newSide2.getKey(), newSide2);
-                                polygons.add(newSide1);
-                                polygons.add(newSide2);
 
                                 foundSplit = true;
                                 System.out.println("Line " + p1 + p2 + "is inside!!!!!!!!!!!!!!!!!!!");
@@ -301,7 +288,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         allPoints.addAll(points);
         List<Triangle> triangulation = getTriangulation();
         mapOfPolygons = HelperMethods.fromTrianglesToPolygons(triangulation);
-        polygons = new CopyOnWriteArrayList<Polygon>(mapOfPolygons.values());
+        polygons = new HashSet<Polygon>(mapOfPolygons.values());
     }
 
     public Collection<Polygon> getPolygons() {

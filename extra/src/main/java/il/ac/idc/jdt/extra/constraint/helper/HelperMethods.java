@@ -148,9 +148,6 @@ public class HelperMethods {
             }
         }
 
-        System.out.println("This is in getIntersectionPoint");
-        System.out.println("polygonToMerge:" + polygonToMerge.toString());
-        System.out.println("rootToMergeInto:" + rootToMergeInto.toString());
         if (intersectionPoints.isEmpty()) {
             throw new RuntimeException("illegal input - no intersection between two polygons");
         } else {
