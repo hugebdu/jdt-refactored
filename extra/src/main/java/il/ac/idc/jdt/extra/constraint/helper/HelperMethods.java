@@ -5,11 +5,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import il.ac.idc.jdt.BoundingBox;
 import il.ac.idc.jdt.Point;
+import il.ac.idc.jdt.Triangle;
 import il.ac.idc.jdt.extra.constraint.datamodel.Line;
 import il.ac.idc.jdt.extra.constraint.datamodel.PointsXComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.PointsYComparator;
 import il.ac.idc.jdt.extra.constraint.datamodel.Polygon;
-import il.ac.idc.jdt.Triangle;
 import org.javatuples.Pair;
 
 import java.util.*;
@@ -41,7 +41,6 @@ public class HelperMethods {
         Polygon mergedPolygon = new Polygon();
         //remove the intersection point to avoid adding it twice
         if (intersectionPoints.size()==2) {
-            System.out.println("twoPoints");
             orderIntersectionPoints(intersectionPoints, rootToMergeInto);
         }
 
@@ -151,9 +150,7 @@ public class HelperMethods {
         if (intersectionPoints.isEmpty()) {
             throw new RuntimeException("illegal input - no intersection between two polygons");
         } else {
-            if (intersectionPoints.size() == 2) {
-                System.out.println("found two intersection points");
-            }  if (intersectionPoints.size() > 2) {
+             if (intersectionPoints.size() > 2) {
                 throw new RuntimeException("illegal input - more then two intersection points");
             }
             return intersectionPoints;
@@ -227,41 +224,6 @@ public class HelperMethods {
 
 
     public static boolean isLineInsidePolygon(Polygon polygon, Line suggestedLine, BoundingBox boundingBox) {
-//        if (polygon.doesLineCrossPolygon(suggestedLine)) {
-//            return false;
-//        } else {
-//            Point descriptorPointOfLine = createDescriptorPointOfLine(suggestedLine);
-//            List<Line> linesFromPolygon = polygon.getLinesFromPolygon();
-//            //if somehow we managed to send line to split by which is one of the original polygon lines
-//            if (linesFromPolygon.contains(suggestedLine)) {
-//                return false;
-//            }
-//            for (Line line : linesFromPolygon) {
-//                boolean pointOnTheLine = isPointOnTheLine(line, descriptorPointOfLine);
-//                if (pointOnTheLine) {
-//                    return false;
-//                }
-//            }
-//
-//            Line lineFromPoint;
-//            boolean lineVertical = isLineVertical(suggestedLine);
-//            lineFromPoint = new Line(descriptorPointOfLine, new Point(boundingBox.getWidth(), descriptorPointOfLine.getY()));
-//
-//            List<Point> intersectionPoints = Lists.newArrayList(descriptorPointOfLine);
-//
-//            for (Line lineFromPolygon : linesFromPolygon) {
-//                if (lineFromPolygon != null) {
-//                    Point intersectionPoint = findIntersectionPoint(lineFromPolygon, lineFromPoint);
-//                    if (intersectionPoint != null) {
-//                        intersectionPoints.add(intersectionPoint);
-//                    }
-//                }
-//            }
-//
-//            int numOfCrossAbove = getNumberOfCrossAboveIntersectionPoint(descriptorPointOfLine, intersectionPoints, lineVertical);
-//            return (numOfCrossAbove%2==1);
-//        }
-
         if (polygon.doesLineCrossPolygon(suggestedLine)) {
             return false;
         } else {
@@ -329,7 +291,7 @@ public class HelperMethods {
     public static Point findIntersectionPoint(Line polygonLine, Line descriptorLine) {
 
         if (polygonLine.isConnectedToLine(descriptorLine.getP1(), descriptorLine.getP2())) {
-            System.out.println("should not get here since we deal with this option by checking of the point is on one of the lines");
+            //System.out.println("should not get here since we deal with this option by checking of the point is on one of the lines");
             return null;
         }
 

@@ -67,6 +67,38 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
             }
         }
         //stage 1
+        Polygon merged = cleanPolygonInLineDirection(line);
+        if (merged == null) {
+            throw new RuntimeException("Something went wrong in cleaning all polygons is constraint direction");
+        };
+        //stage 2
+        DivideMergedPolygonByConstraint divideMergedPolygonByConstraint = new DivideMergedPolygonByConstraint(line, merged).invoke();
+        Polygon side1 = divideMergedPolygonByConstraint.getSide1();
+        Polygon side2 = divideMergedPolygonByConstraint.getSide2();
+
+        //stage 3 - change this method of you want to implement some other strategy to divide polygons
+        divideSidesToTriangles(side1, side2);
+    }
+
+    private void divideSidesToTriangles(Polygon side1, Polygon side2) {
+        List<Polygon> newTriangles = Lists.newArrayList();
+        divideToConstrainedPolygons(side1, newTriangles);
+        divideToConstrainedPolygons(side2, newTriangles);
+
+
+        mapOfPolygons.remove(side1.getKey());
+        mapOfPolygons.remove(side2.getKey());
+
+        polygons.remove(side1);
+        polygons.remove(side2);
+
+        for (Polygon p : newTriangles) {
+            mapOfPolygons.put(p.getKey(), p);
+            polygons.add(p);
+        }
+    }
+
+    private Polygon cleanPolygonInLineDirection(Line line) {
         List<Polygon> effectedPolygons = findEffectedPolygons(line.getP1());
         Polygon firstPolygon = getPolygonsInDirectionToP2(line, effectedPolygons).iterator().next();
 
@@ -84,37 +116,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 
         mapOfPolygons.remove(merged.getKey());
         polygons.remove(merged);
-        //stage 2
-        Polygon side1 = new Polygon();
-        Polygon side2 = new Polygon();
-        HelperMethods.dividePolygonByLine(line, merged, side1, side2);
-
-        mapOfPolygons.put(side1.getKey(), side1);
-        mapOfPolygons.put(side2.getKey(), side2);
-        polygons.add(side1) ;
-        polygons.add(side2) ;
-
-        //stage 3
-        List<Polygon> newTriangles = Lists.newArrayList();
-        divideToConstrainedPolygons(side1, newTriangles);
-        divideToConstrainedPolygons(side2, newTriangles);
-
-
-        mapOfPolygons.remove(side1.getKey());
-        mapOfPolygons.remove(side2.getKey());
-
-        polygons.remove(side1);
-        polygons.remove(side2);
-
-//        System.out.println("#####################################################################3"+polygons.remove(side1));
-//        System.out.println("#####################################################################3" + polygons.remove(side2));
-//        System.out.println("#####################################################################44"+polygons.remove(side1));
-//        System.out.println("#####################################################################44"+polygons.remove(side2));
-
-        for (Polygon p : newTriangles) {
-            mapOfPolygons.put(p.getKey(), p);
-            polygons.add(p);
-        }
+        return merged;
     }
 
     /**
@@ -139,7 +141,7 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         for (Point p:allPoints) {
             if (!p.equals(line.getP1()) && !p.equals(line.getP2())) {
                 if (HelperMethods.isPointOnTheLine(line, p)) {
-                      pointsOnLongSegment.add(p);
+                    pointsOnLongSegment.add(p);
                 }
             }
         }
@@ -163,6 +165,12 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
         }
     }
 
+    /**
+     * Go over possible lines (different pairs of point from the polygon). if line is inside the polygon then divide
+     * the polygon by this line. do the same algorithm on each of the new created sides till all sides are triangles
+     * @param polygonToSplit
+     * @param newTriangles
+     */
     private void divideToConstrainedPolygons(Polygon polygonToSplit, List<Polygon> newTriangles) {
         if (polygonToSplit.isTriangle()) {
             newTriangles.add(polygonToSplit);
@@ -180,18 +188,12 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
                             if (HelperMethods.isLineInsidePolygon(polygonToSplit, splitCandidate, getBoundingBox())){
                                 Polygon newSide1 = new Polygon();
                                 Polygon newSide2 = new Polygon();
-                                System.out.println("going into divide");
                                 HelperMethods.dividePolygonByLine(splitCandidate, polygonToSplit, newSide1, newSide2);
                                 divideToConstrainedPolygons(newSide1, newTriangles);
                                 divideToConstrainedPolygons(newSide2, newTriangles);
 
                                 foundSplit = true;
-                                System.out.println("Line " + p1 + p2 + "is inside!!!!!!!!!!!!!!!!!!!");
-
                                 break;
-                            }  else {
-                                System.out.println("Line " + p1 + p2 + "not inside");
-
                             }
                         } else {
 
@@ -222,7 +224,6 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
                             polygonInTheRightDirection.add(polygon);
                             break;
                         } else if (HelperMethods.isPointOnTheLine(line, lineFromPolygon.getP1()) || HelperMethods.isPointOnTheLine(line, lineFromPolygon.getP2())) {
-                            System.out.println("added polygon on the line!");
                             polygonInTheRightDirection.add(polygon);
                             break;
                         }
@@ -293,5 +294,37 @@ public class ConstrainedDelaunayTriangulation extends DelaunayTriangulation
 
     public Collection<Polygon> getPolygons() {
         return polygons;
+    }
+
+    private class DivideMergedPolygonByConstraint {
+        private Line line;
+        private Polygon merged;
+        private Polygon side1;
+        private Polygon side2;
+
+        public DivideMergedPolygonByConstraint(Line line, Polygon merged) {
+            this.line = line;
+            this.merged = merged;
+        }
+
+        public Polygon getSide1() {
+            return side1;
+        }
+
+        public Polygon getSide2() {
+            return side2;
+        }
+
+        public DivideMergedPolygonByConstraint invoke() {
+            side1 = new Polygon();
+            side2 = new Polygon();
+            HelperMethods.dividePolygonByLine(line, merged, side1, side2);
+
+            mapOfPolygons.put(side1.getKey(), side1);
+            mapOfPolygons.put(side2.getKey(), side2);
+            polygons.add(side1) ;
+            polygons.add(side2) ;
+            return this;
+        }
     }
 }
